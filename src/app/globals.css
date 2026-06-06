@@ -1,0 +1,205 @@
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700;800;900&display=swap');
+@import "tailwindcss";
+
+/* ─────────────────────────────────────────
+   Brand Design Tokens
+───────────────────────────────────────── */
+:root {
+  --brand-primary: #15110D;
+  --brand-secondary: #EDE3D0;
+  --brand-tertiary: #B8956A;
+  --brand-primary-light: #1e1812;
+  --brand-secondary-dark: #d9cbb8;
+
+  --font-cinzel: 'Cinzel', Georgia, serif;
+  --font-helvetica: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+}
+
+/* ─────────────────────────────────────────
+   Base Styles (run inside Tailwind's base layer)
+───────────────────────────────────────── */
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    background-color: var(--brand-primary);
+    color: var(--brand-secondary);
+    font-family: var(--font-helvetica);
+    font-size: 16px;
+    line-height: 1.6;
+    /* Ensure normal word & letter spacing everywhere */
+    word-spacing: normal;
+    letter-spacing: normal;
+    overflow-x: hidden;
+  }
+
+  /* Inherit font-family into all elements */
+  button,
+  input,
+  textarea,
+  select {
+    font-family: inherit;
+  }
+}
+
+/* ─────────────────────────────────────────
+   Centered Container — registered as a
+   Tailwind utility so it participates in
+   the correct CSS cascade layer
+───────────────────────────────────────── */
+@layer utilities {
+  .container-brand {
+    width: 100%;
+    max-width: 1600px;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 1.5rem;   /* 24px mobile */
+    padding-right: 1.5rem;
+    word-spacing: normal;
+    letter-spacing: normal;
+  }
+}
+
+/* Responsive padding via media queries (outside layer so they always win) */
+@media (min-width: 640px) {
+  .container-brand {
+    padding-left: 2rem;     /* 32px */
+    padding-right: 2rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .container-brand {
+    padding-left: 2.5rem;   /* 40px */
+    padding-right: 2.5rem;
+  }
+}
+
+@media (min-width: 1536px) {
+  .container-brand {
+    max-width: 1800px;
+    padding-left: 4rem;     /* 64px */
+    padding-right: 4rem;
+  }
+}
+
+/* ─────────────────────────────────────────
+   Typography Utilities
+───────────────────────────────────────── */
+@layer utilities {
+  .font-cinzel {
+    font-family: var(--font-cinzel);
+  }
+
+  .font-helvetica {
+    font-family: var(--font-helvetica);
+    word-spacing: normal;
+    letter-spacing: normal;
+  }
+
+  .text-brand-primary  { color: var(--brand-primary); }
+  .text-brand-secondary { color: var(--brand-secondary); }
+  .text-brand-tertiary  { color: var(--brand-tertiary); }
+  .bg-brand-primary  { background-color: var(--brand-primary); }
+  .bg-brand-secondary { background-color: var(--brand-secondary); }
+  .bg-brand-tertiary  { background-color: var(--brand-tertiary); }
+
+  /* Editorial label style */
+  .label-editorial {
+    font-family: var(--font-helvetica);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--brand-tertiary);
+  }
+
+  /* Border & divider utilities */
+  .border-brand {
+    border-color: rgba(184, 149, 106, 0.25);
+  }
+
+  .divider-brand {
+    width: 100%;
+    height: 1px;
+    background-color: rgba(184, 149, 106, 0.2);
+  }
+}
+
+/* ─────────────────────────────────────────
+   Scrollbar Styling
+───────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--brand-primary);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--brand-tertiary);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--brand-secondary-dark);
+}
+
+/* ─────────────────────────────────────────
+   Selection
+───────────────────────────────────────── */
+::selection {
+  background-color: var(--brand-tertiary);
+  color: var(--brand-primary);
+}
+
+/* ─────────────────────────────────────────
+   Animations
+───────────────────────────────────────── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(40px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes slideFromLeft {
+  from { opacity: 0; transform: translateX(-40px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* ─────────────────────────────────────────
+   Hero Section Marquee
+───────────────────────────────────────── */
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+.marquee-track {
+  display: flex;
+  animation: marquee 24s linear infinite;
+  width: max-content;
+}
+
+/* ─────────────────────────────────────────
+   Image overlay helper
+───────────────────────────────────────── */
+.img-overlay-dark::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, transparent 40%, rgba(21, 17, 13, 0.9) 100%);
+  pointer-events: none;
+}
