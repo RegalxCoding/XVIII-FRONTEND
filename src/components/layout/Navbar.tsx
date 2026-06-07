@@ -2,14 +2,18 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, ShoppingBag } from 'lucide-react';
 import { NAV_LINKS } from '@/constants';
+import { useCartStore } from '@/store/cart.store';
 
 export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+
+  // Reactive cart count from Zustand
+  const items = useCartStore((s) => s.items);
+  const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 40);
@@ -88,8 +92,46 @@ export default function Navbar() {
             ))}
           </nav>
 
-          {/* CTA + Mobile Toggle */}
-          <div className="flex items-center gap-4">
+          {/* CTA + Cart + Mobile Toggle */}
+          <div className="flex items-center gap-3">
+
+            {/* ── Cart Icon — desktop + mobile ── */}
+            <Link
+              href="/cart"
+              id="navbar-cart-btn"
+              aria-label={`Cart — ${totalItems} item${totalItems !== 1 ? 's' : ''}`}
+              className="
+                relative flex items-center gap-2
+                text-[#EDE3D0]/70 hover:text-[#EDE3D0]
+                px-3 py-2 transition-colors duration-300
+              "
+            >
+              <ShoppingBag size={18} strokeWidth={1.5} />
+              <AnimatePresence>
+                {totalItems > 0 && (
+                  <motion.span
+                    key={totalItems}
+                    initial={{ scale: 0.5, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    exit={{ scale: 0.5, opacity: 0 }}
+                    transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+                    className="
+                      absolute -top-1 -right-1
+                      min-w-[18px] h-[18px] px-1
+                      bg-[#B8956A] text-[#15110D]
+                      text-[9px] font-bold
+                      flex items-center justify-center
+                      rounded-full leading-none
+                    "
+                    style={{ fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif' }}
+                  >
+                    {totalItems > 99 ? '99+' : totalItems}
+                  </motion.span>
+                )}
+              </AnimatePresence>
+            </Link>
+
+            {/* Order Now CTA — desktop only */}
             <Link
               href="/menu"
               id="navbar-order-cta"
@@ -165,7 +207,7 @@ export default function Navbar() {
                 initial={{ opacity: 0, x: 40 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.45, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-                className="pt-4 border-t border-[#B8956A]/20"
+                className="pt-4 border-t border-[#B8956A]/20 flex items-center gap-4"
               >
                 <Link
                   href="/menu"
@@ -179,6 +221,31 @@ export default function Navbar() {
                   style={{ fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif' }}
                 >
                   Order Now
+                </Link>
+
+                {/* Cart link — mobile menu */}
+                <Link
+                  href="/cart"
+                  onClick={() => setIsMobileOpen(false)}
+                  id="mobile-cart-link"
+                  className="
+                    inline-flex items-center gap-2
+                    border border-[#B8956A]/30 text-[#EDE3D0]/70
+                    px-6 py-3.5 text-xs tracking-[0.25em] uppercase font-medium
+                    hover:border-[#B8956A] hover:text-[#EDE3D0] transition-colors duration-300
+                  "
+                  style={{ fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif' }}
+                >
+                  <ShoppingBag size={14} />
+                  Cart
+                  {totalItems > 0 && (
+                    <span
+                      className="bg-[#B8956A] text-[#15110D] text-[9px] font-bold px-1.5 py-0.5 rounded-full leading-none"
+                      style={{ fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif' }}
+                    >
+                      {totalItems}
+                    </span>
+                  )}
                 </Link>
               </motion.div>
             </div>

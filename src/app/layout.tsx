@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import AppProviders from '@/providers/AppProviders';
 
 export const metadata: Metadata = {
   title: 'The XVIII Brew Co. | Crafted Coffee & Extraordinary Desserts',
@@ -35,7 +36,9 @@ export default function RootLayout({
         />
       </head>
       <body className="antialiased" suppressHydrationWarning>
-        {children}
+        <AppProviders>
+          {children}
+        </AppProviders>
       </body>
     </html>
   );

@@ -1,6 +1,6 @@
 # The XVIII Brew Co. — Project Documentation
 
-> **Last Updated:** 6 June 2026  
+> **Last Updated:** 7 June 2026  
 > **Stack:** Next.js 16 · TypeScript · Tailwind CSS v4 · Framer Motion · Appwrite  
 > **Author:** XVIII Brew Co. Development Team
 
@@ -13,16 +13,17 @@
 3. [Frontend — Full File Reference](#3-frontend--full-file-reference)
    - [App Directory (Pages & Layout)](#31-app-directory)
    - [Components](#32-components)
-   - [Services (Appwrite)](#33-services)
-   - [Hooks](#34-hooks)
-   - [Store](#35-store)
-   - [Types](#36-types)
-   - [Constants](#37-constants)
-   - [Utils](#38-utils)
-   - [Providers](#39-providers)
-   - [Lib](#310-lib)
-   - [Public Assets](#311-public-assets)
-   - [Config Files](#312-config-files)
+   - [Data Layer](#33-data-layer)
+   - [Services (Appwrite)](#34-services)
+   - [Hooks](#35-hooks)
+   - [Store](#36-store)
+   - [Types](#37-types)
+   - [Constants](#38-constants)
+   - [Utils](#39-utils)
+   - [Providers](#310-providers)
+   - [Lib](#311-lib)
+   - [Public Assets](#312-public-assets)
+   - [Config Files](#313-config-files)
 4. [Design System](#4-design-system)
 5. [Appwrite Integration Guide](#5-appwrite-integration-guide)
 6. [Environment Variables](#6-environment-variables)
@@ -61,10 +62,11 @@ The `src/app/` directory uses the Next.js 15 App Router. Every `page.tsx` is a s
 
 | File                    | Route          | Purpose                                                                                                                                                                                                       |
 | ----------------------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `layout.tsx`            | —              | Root layout. Sets global `<html>` metadata (SEO title, description, Open Graph), loads Cinzel from Google Fonts, applies `suppressHydrationWarning` on `<body>` to prevent browser-extension hydration errors |
+| `layout.tsx`            | —              | Root layout. Sets global `<html>` metadata, loads Cinzel from Google Fonts, wraps `<body>` in `AppProviders` (mounts CartToast globally)                                                                      |
 | `globals.css`           | —              | Global CSS. Brand design tokens (CSS variables), Tailwind v4 layer setup, `.container-brand` utility, body word/letter-spacing resets, marquee animation, scrollbar styling, selection colours                |
 | `page.tsx`              | `/`            | Landing page. Imports and assembles all 8 section components in order: Navbar → Hero → Philosophy → BestSellers → Process → Rewards → MenuPreview → FinalCTA → Footer                                         |
-| `menu/page.tsx`         | `/menu`        | Menu listing page scaffold (full data integration pending)                                                                                                                                                    |
+| `menu/page.tsx`         | `/menu`        | **Complete** menu catalogue page. Server component shell — composes `MenuHero` + `MenuGrid`. SEO metadata included. Appwrite fetch point marked in comments.                                                  |
+| `cart/page.tsx`         | `/cart`        | **Complete** cart page. Client component (reads Zustand). Two-column desktop layout: items list + sticky `OrderSummary`. Empty-state with Browse Menu CTA.                                                    |
 | `about/page.tsx`        | `/about`       | Brand story page scaffold                                                                                                                                                                                     |
 | `contact/page.tsx`      | `/contact`     | Contact page scaffold                                                                                                                                                                                         |
 | `rewards/page.tsx`      | `/rewards`     | Loyalty programme page scaffold                                                                                                                                                                               |
@@ -77,10 +79,31 @@ The `src/app/` directory uses the Next.js 15 App Router. Every `page.tsx` is a s
 
 #### Layout Components (`src/components/layout/`)
 
-| File         | Purpose                   | Key Features                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| File         | Purpose                   | Key Features                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | ------------ | ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Navbar.tsx` | Sticky top navigation bar | - Transparent on load, dark with `backdrop-blur` on scroll<br>- Logo SVG container: **`w-14 h-14` (56 px)** — increased from 40 px for better visibility<br>- Logo (SVG inline) + text lockup on left<br>- Desktop nav links (Home, Menu, About, Rewards, Contact) with underline hover effect<br>- **Order Now** CTA button on right<br>- Mobile: hamburger toggle opens full-screen slide-in overlay menu with staggered Framer Motion animations<br>- Body scroll lock when mobile menu is open |
+| `Navbar.tsx` | Sticky top navigation bar | - Transparent on load, dark with `backdrop-blur` on scroll<br>- Logo SVG `w-14 h-14` (56 px)<br>- Desktop nav links with underline hover effect<br>- **🛒 Cart indicator** — `ShoppingBag` icon with animated gold count badge sourced from `useCartStore`. Updates instantly when items are added/removed. Visible on desktop and mobile.<br>- **Order Now** CTA on right (desktop)<br>- Mobile: full-screen slide-in overlay with Cart shortcut link and live count badge<br>- Body scroll lock when mobile menu is open |
 | `Footer.tsx` | Site-wide footer          | - 4-column grid: Brand, Navigate, Contact, CTA<br>- Social links (Instagram SVG, WhatsApp via lucide `MessageCircle`)<br>- Copyright + brand tagline bar<br>- Responsive: stacks to 1→2→4 columns                                                                                                                                                                                                                                                                                                  |
+
+#### Menu Components (`src/components/menu/`)
+
+| File              | Purpose                         | Key Features                                                                                                                                                                                                                       |
+| ----------------- | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `MenuHero.tsx`    | Hero section for `/menu` page   | Animated editorial hero. Ghost `XVIII` parallax typography. Stats row (items, categories). Uses same framer-motion `fadeUp` pattern as landing hero. Eyebrow label + large H1 headline.                                            |
+| `ProductCard.tsx` | Reusable individual product card | Fixed `4:5` aspect-ratio image container with `object-fit: cover` — images never stretch or overflow regardless of source dimensions. Category badge, featured dot, name + price row, description, minimal `+ Add` button. Accepts `onAdd` callback prop. |
+| `MenuGrid.tsx`    | Filterable product grid         | Client component. Owns `activeFilter` state. Tabs: All / Coffee / Desserts with live item counts. `AnimatePresence` fade transition between filter states. Calls `useCartStore.addToCart()` + `fireCartToast()` on add.             |
+
+#### Cart Components (`src/components/cart/`)
+
+| File              | Purpose                          | Key Features                                                                                                                                                                                                                          |
+| ----------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `CartItemRow.tsx` | Single cart item row             | Fixed `4:5` image thumbnail (`object-fit: cover`). Product name, category label, description (line-clamped). Quantity stepper (`−` / count / `+`) wired to `updateQuantity`. `×` remove button wired to `removeFromCart`. Live line total. AnimatePresence exit animation. |
+| `OrderSummary.tsx`| Sticky order summary sidebar     | Sticky on desktop (`lg:sticky lg:top-32`). Shows Subtotal (with item count), Delivery Fee (₹40 flat), Total. Smart checkout button: routes to `/login` if unauthenticated, `/checkout` if logged in. Disabled + muted when cart empty. Reads `useAuthStore` for auth state. |
+
+#### UI Components (`src/components/ui/`)
+
+| File            | Purpose                       | Key Features                                                                                                                                                                                                   |
+| --------------- | ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `CartToast.tsx` | "Added to Cart" popup notification | Lightweight event-bus pattern (`fireCartToast(productName)` callable from anywhere). Framer Motion `AnimatePresence` stack. Auto-dismisses after 2.8 s. Brand aesthetic: `#1e1812` bg, gold border, check icon. Fixed bottom-right. |
 
 #### Section Components (`src/components/sections/`)
 
@@ -96,7 +119,19 @@ The `src/app/` directory uses the Next.js 15 App Router. Every `page.tsx` is a s
 
 ---
 
-### 3.3 Services
+### 3.3 Data Layer
+
+Located in `src/data/`. Pure TypeScript data — **no Appwrite SDK calls here**. Swap exports for Appwrite fetch functions when going live.
+
+| File            | Purpose                             | Exports                                                                                  |
+| --------------- | ----------------------------------- | ---------------------------------------------------------------------------------------- |
+| `menuData.ts`   | Dummy menu product data + type defs | `MenuCategory`, `MenuProduct` interface, `MENU_PRODUCTS` array (8 products: 4 coffee + 4 dessert) |
+
+> **Appwrite handoff:** Replace `MENU_PRODUCTS` export in `menuData.ts` with a `databases.listDocuments()` call. Pass results as props to `MenuGrid`. No UI changes required.
+
+---
+
+### 3.4 Services
 
 Located in `src/services/`. All services use the Appwrite SDK and pull config from `APPWRITE_CONFIG` in `src/lib/appwrite.ts`. **No IDs are hardcoded.**
 
@@ -108,7 +143,7 @@ Located in `src/services/`. All services use the Appwrite SDK and pull config fr
 
 ---
 
-### 3.4 Hooks
+### 3.5 Hooks
 
 Located in `src/hooks/`.
 
@@ -118,17 +153,27 @@ Located in `src/hooks/`.
 
 ---
 
-### 3.5 Store
+### 3.6 Store
 
 Located in `src/store/`. Uses **Zustand** for global state.
 
-| File            | Purpose                                                                      | State Shape                                                               |
-| --------------- | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| `auth.store.ts` | Global authentication state. Used across the app to read/write user session. | `{ user, isLoading, isAuthenticated, setUser(), initialize(), logout() }` |
+| File             | Purpose                                                                                          | State Shape                                                                                                                         |
+| ---------------- | ------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `auth.store.ts`  | Global authentication state. Used across the app to read/write user session.                     | `{ user, isLoading, isAuthenticated, setUser(), initialize(), logout() }`                                                           |
+| `cart.store.ts`  | **Cart state** — persisted to `localStorage` via Zustand `persist` middleware (key: `xviii-cart`). | `{ items: CartItem[], addToCart(), removeFromCart(), updateQuantity(), clearCart(), getTotalItems(), getSubtotal() }` |
+
+**`CartItem` shape:**
+```typescript
+{ product: MenuProduct, quantity: number }
+```
+
+**`DELIVERY_FEE`** constant exported from `cart.store.ts` — flat ₹40. Update here when pricing changes.
+
+> **Appwrite handoff:** `addToCart` currently stores a `MenuProduct` snapshot. When connecting Appwrite, the `product` field in `CartItem` can store the Appwrite document directly since it shares the same schema (`name`, `description`, `price`, `image`, `category`, `available`, `featured`, `stampReward`).
 
 ---
 
-### 3.6 Types
+### 3.7 Types
 
 Located in `src/types/`. Pure TypeScript interfaces — no runtime code.
 
@@ -140,7 +185,7 @@ Located in `src/types/`. Pure TypeScript interfaces — no runtime code.
 
 ---
 
-### 3.7 Constants
+### 3.8 Constants
 
 Located in `src/constants/index.ts`. Single source of truth for all static brand content. **Change content here, not in components.**
 
@@ -157,7 +202,7 @@ Located in `src/constants/index.ts`. Single source of truth for all static brand
 
 ---
 
-### 3.8 Utils
+### 3.9 Utils
 
 Located in `src/utils/helpers.ts`. Pure utility functions.
 
@@ -171,17 +216,17 @@ Located in `src/utils/helpers.ts`. Pure utility functions.
 
 ---
 
-### 3.9 Providers
+### 3.10 Providers
 
 Located in `src/providers/AppProviders.tsx`.
 
-| File               | Purpose                                                                                                                                                                       |
-| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `AppProviders.tsx` | Root providers wrapper component. Currently a passthrough. Extend this file to add React Context providers (theme, auth context, toast, etc.) without modifying `layout.tsx`. |
+| File               | Purpose                                                                                                                                                                                                              |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `AppProviders.tsx` | Root providers wrapper. Mounts `<CartToast />` globally so the add-to-cart notification is available on every page. Add further React Context providers (auth context, theme, etc.) inside this wrapper without modifying `layout.tsx`. |
 
 ---
 
-### 3.10 Lib
+### 3.11 Lib
 
 Located in `src/lib/`.
 
@@ -205,7 +250,7 @@ Located in `src/lib/`.
 
 ---
 
-### 3.11 Public Assets
+### 3.12 Public Assets
 
 Located in `frontend/public/images/`. All images are AI-generated editorial photography.
 
@@ -224,10 +269,18 @@ Located in `frontend/public/images/`. All images are AI-generated editorial phot
 | `menu-coffee.png`         | `MenuPreviewSection` — Coffee category             | Multiple drinks arranged overhead                              |
 | `menu-desserts.png`       | `MenuPreviewSection` — Desserts category           | Multiple desserts arranged overhead                            |
 | `menu-specials.png`       | `MenuPreviewSection` — Signature Specials          | Signature cocktail-style coffee                                |
+| `menu-noir-latte.png`     | `ProductCard` — Noir Latte                         | Noir latte with micro-foam art, moody dark background          |
+| `menu-cappuccino.png`     | `ProductCard` — Cappuccino                         | Classic cappuccino rosette, warm bokeh                         |
+| `menu-cold-brew.png`      | `ProductCard` — Signature Cold Brew                | Cold brew in tall glass, hand-carved ice, condensation         |
+| `menu-mocha-reserve.png`  | `ProductCard` — Mocha Reserve                      | Rich mocha with chocolate drizzle and dark crema               |
+| `menu-belgian-brownie.png`| `ProductCard` — Belgian Brownie                    | Dense fudge brownie with glossy ganache top                    |
+| `menu-cheesecake.png`     | `ProductCard` — Blueberry Cheesecake               | New York cheesecake with wild blueberry compote                |
+| `menu-truffle-tart.png`   | `ProductCard` — Chocolate Truffle Tart             | Dark valrhona tart with edible gold leaf                       |
+| `menu-tiramisu.png`       | `ProductCard` — Classic Tiramisu                   | Layered tiramisu in glass, dusted cocoa                        |
 
 ---
 
-### 3.12 Config Files
+### 3.13 Config Files
 
 | File                 | Purpose                                                                                                                                                                                                                                      |
 | -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -318,17 +371,21 @@ cp .env.example .env.local
 
 ## 7. Pages Reference
 
-| Route           | File                        | Type          | Status      |
-| --------------- | --------------------------- | ------------- | ----------- |
-| `/`             | `app/page.tsx`              | Static        | ✅ Complete |
-| `/menu`         | `app/menu/page.tsx`         | Static        | 🔧 Scaffold |
-| `/product/[id]` | `app/product/[id]/page.tsx` | Dynamic (SSR) | 🔧 Scaffold |
-| `/about`        | `app/about/page.tsx`        | Static        | 🔧 Scaffold |
-| `/contact`      | `app/contact/page.tsx`      | Static        | 🔧 Scaffold |
-| `/rewards`      | `app/rewards/page.tsx`      | Static        | 🔧 Scaffold |
-| `/login`        | `app/login/page.tsx`        | Static        | 🔧 Scaffold |
+| Route           | File                        | Type          | Status           | Notes                                                                    |
+| --------------- | --------------------------- | ------------- | ---------------- | ------------------------------------------------------------------------ |
+| `/`             | `app/page.tsx`              | Static        | ✅ Complete      | Full landing page with all 8 sections                                    |
+| `/menu`         | `app/menu/page.tsx`         | Static        | ✅ Complete      | Hero + filterable product grid. Dummy data. Ready for Appwrite handoff.  |
+| `/cart`         | `app/cart/page.tsx`         | Client        | ✅ Complete      | Zustand cart, quantity controls, order summary, empty state              |
+| `/product/[id]` | `app/product/[id]/page.tsx` | Dynamic (SSR) | 🔧 Scaffold      | —                                                                        |
+| `/about`        | `app/about/page.tsx`        | Static        | 🔧 Scaffold      | —                                                                        |
+| `/contact`      | `app/contact/page.tsx`      | Static        | 🔧 Scaffold      | —                                                                        |
+| `/rewards`      | `app/rewards/page.tsx`      | Static        | 🔧 Scaffold      | —                                                                        |
+| `/login`        | `app/login/page.tsx`        | Static        | 🔧 Scaffold      | Cart checkout redirects here when unauthenticated                        |
+| `/checkout`     | _(not yet created)_         | Client        | ⬜ Not started   | Checkout button routes here when user is authenticated                   |
 
-> **🔧 Scaffold** = page structure and styling in place, full data/forms not yet connected.
+> **✅ Complete** = fully functional with dummy data, ready for Appwrite integration.  
+> **🔧 Scaffold** = page structure in place, data/forms not yet connected.  
+> **⬜ Not started** = route planned but file not yet created.
 
 ---
 
@@ -342,11 +399,34 @@ All section components are **zero-prop** — they import data from `src/constant
 
 - No props
 - Internal state: `isScrolled` (boolean), `isMobileOpen` (boolean)
+- Reads `useCartStore` for live cart count badge
 
 ### Footer
 
 - No props
 - Reads `NAV_LINKS` and `BRAND` from constants
+
+### ProductCard
+
+| Prop      | Type                              | Required | Description                                        |
+| --------- | --------------------------------- | -------- | -------------------------------------------------- |
+| `product` | `MenuProduct`                     | ✅       | Product data object (from `menuData.ts` or Appwrite) |
+| `index`   | `number`                          | ✅       | Used for staggered animation delay                 |
+| `onAdd`   | `(product: MenuProduct) => void`  | ⬜       | Callback fired when Add button is clicked          |
+
+### CartItemRow
+
+| Prop    | Type        | Required | Description                          |
+| ------- | ----------- | -------- | ------------------------------------ |
+| `item`  | `CartItem`  | ✅       | Cart item (`{ product, quantity }`)  |
+| `index` | `number`    | ✅       | Used for staggered animation delay   |
+
+### OrderSummary
+
+- No props
+- Reads `useCartStore` for items + subtotal
+- Reads `useAuthStore` for authentication state
+- Routing: `/login` (unauthenticated) · `/checkout` (authenticated)
 
 ---
 
@@ -370,6 +450,39 @@ npm run lint      # Run ESLint
 ## 10. Changelog
 
 A running log of all significant frontend changes. Most recent first.
+
+---
+
+### 7 June 2026
+
+#### Cart System — Full Implementation
+
+**New files:**
+- `src/store/cart.store.ts` — Zustand store with `addToCart`, `removeFromCart`, `updateQuantity`, `clearCart`. Persisted to `localStorage` (key: `xviii-cart`). Exports `DELIVERY_FEE = 40`.
+- `src/components/ui/CartToast.tsx` — Lightweight "Added to Cart" toast using an event-bus (`fireCartToast(name)`). Framer Motion AnimatePresence. Auto-dismisses at 2.8 s.
+- `src/components/cart/CartItemRow.tsx` — Per-item row: fixed 4:5 image, quantity stepper, remove button, live line total.
+- `src/components/cart/OrderSummary.tsx` — Sticky sidebar: Subtotal + ₹40 Delivery + Total. Smart checkout routing (`/login` or `/checkout`).
+- `src/app/cart/page.tsx` — Full `/cart` page. Two-column desktop layout (items list + sticky summary). Empty state with Browse Menu CTA.
+
+**Modified files:**
+- `src/providers/AppProviders.tsx` — Now mounts `<CartToast />` globally.
+- `src/app/layout.tsx` — Wraps `{children}` in `<AppProviders>`.
+- `src/components/layout/Navbar.tsx` — Added `ShoppingBag` icon with animated gold count badge reading from `useCartStore`.
+- `src/components/menu/MenuGrid.tsx` — `handleAdd` now calls `addToCart` + `fireCartToast`.
+
+#### Menu Page — Full Implementation
+
+**New files:**
+- `src/data/menuData.ts` — `MenuProduct` type + 8 dummy products (4 coffee, 4 dessert). Maps to Appwrite Products collection schema.
+- `src/components/menu/MenuHero.tsx` — Animated editorial hero section for `/menu`. Ghost `XVIII` parallax text. Stats row.
+- `src/components/menu/ProductCard.tsx` — Reusable product card. Fixed 4:5 image with `object-fit: cover`. Accepts `onAdd` callback.
+- `src/components/menu/MenuGrid.tsx` — Filterable product grid (All / Coffee / Desserts). AnimatePresence filter transitions.
+
+**New images** added to `public/images/`:
+`menu-noir-latte.png` · `menu-cappuccino.png` · `menu-cold-brew.png` · `menu-mocha-reserve.png` · `menu-belgian-brownie.png` · `menu-cheesecake.png` · `menu-truffle-tart.png` · `menu-tiramisu.png`
+
+**Modified files:**
+- `src/app/menu/page.tsx` — Replaced placeholder with full composed page (`MenuHero` + `MenuGrid`).
 
 ---
 
