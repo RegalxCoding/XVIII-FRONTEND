@@ -1,43 +1,59 @@
-import { account, databases, APPWRITE_CONFIG, ID } from '@/lib/appwrite';
-import type { LoginCredentials, RegisterCredentials } from '@/types/user.types';
+import { auth } from '@/lib/firebase';
+import {
+  signOut,
+  signInWithPhoneNumber,
+  RecaptchaVerifier,
+  type ConfirmationResult,
+  onAuthStateChanged,
+  type User as FirebaseUser,
+} from 'firebase/auth';
 
 // ─────────────────────────────────────────
-// Auth Service
+// Auth Service (Firebase Auth)
 // ─────────────────────────────────────────
 
 export const authService = {
   /**
-   * Register a new user account
+   * Send OTP code to a phone number using ReCAPTCHA Verifier
    */
-  async register({ name, email, password }: RegisterCredentials) {
-    const newAccount = await account.create(ID.unique(), email, password, name);
-    await this.login({ email, password });
-    return newAccount;
+  async sendOtp(phoneNumber: string, recaptchaVerifier: RecaptchaVerifier): Promise<ConfirmationResult> {
+    return await signInWithPhoneNumber(auth, phoneNumber, recaptchaVerifier);
   },
 
   /**
-   * Login with email and password
+   * Confirm OTP code and complete sign-in
    */
-  async login({ email, password }: LoginCredentials) {
-    return await account.createEmailPasswordSession(email, password);
+  async confirmOtp(confirmationResult: ConfirmationResult, code: string): Promise<FirebaseUser> {
+    const result = await confirmationResult.confirm(code);
+    if (!result.user) {
+      throw new Error('No user returned from OTP verification');
+    }
+    return result.user;
   },
 
   /**
    * Get current authenticated user
    */
-  async getCurrentUser() {
-    try {
-      return await account.get();
-    } catch {
-      return null;
-    }
+  async getCurrentUser(): Promise<FirebaseUser | null> {
+    return new Promise((resolve) => {
+      const unsubscribe = onAuthStateChanged(
+        auth,
+        (user) => {
+          unsubscribe();
+          resolve(user);
+        },
+        () => {
+          resolve(null);
+        }
+      );
+    });
   },
 
   /**
    * Logout the current session
    */
-  async logout() {
-    return await account.deleteSession('current');
+  async logout(): Promise<void> {
+    await signOut(auth);
   },
 
   /**
@@ -49,16 +65,9 @@ export const authService = {
   },
 
   /**
-   * Send password recovery email
+   * Subscribe to authentication state changes
    */
-  async sendPasswordRecovery(email: string, redirectUrl: string) {
-    return await account.createRecovery(email, redirectUrl);
-  },
-
-  /**
-   * Update account password
-   */
-  async updatePassword(newPassword: string, oldPassword: string) {
-    return await account.updatePassword(newPassword, oldPassword);
+  onAuthStateChange(callback: (user: FirebaseUser | null) => void) {
+    return onAuthStateChanged(auth, callback);
   },
 };

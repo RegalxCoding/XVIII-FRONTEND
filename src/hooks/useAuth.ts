@@ -1,44 +1,60 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { authService } from '@/services/auth.service';
-import type { Models } from 'appwrite';
+import type { AuthUser } from '@/store/auth.store';
+import type { User as FirebaseUser } from 'firebase/auth';
 
 // ─────────────────────────────────────────
 // useAuth Hook
 // ─────────────────────────────────────────
 
 interface UseAuthReturn {
-  user: Models.User<Models.Preferences> | null;
+  user: AuthUser | null;
   isLoading: boolean;
   isAuthenticated: boolean;
   refetch: () => void;
 }
 
 export function useAuth(): UseAuthReturn {
-  const [user, setUser] = useState<Models.User<Models.Preferences> | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const fetchUser = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const currentUser = await authService.getCurrentUser();
-      setUser(currentUser);
-    } catch {
+  const syncUser = (firebaseUser: FirebaseUser | null) => {
+    if (firebaseUser) {
+      setUser({
+        uid: firebaseUser.uid,
+        phoneNumber: firebaseUser.phoneNumber,
+        displayName: firebaseUser.displayName,
+        email: firebaseUser.email,
+        photoURL: firebaseUser.photoURL,
+      });
+    } else {
       setUser(null);
-    } finally {
-      setIsLoading(false);
     }
-  }, []);
+    setIsLoading(false);
+  };
 
   useEffect(() => {
-    fetchUser();
-  }, [fetchUser]);
+    // Set up Firebase auth listener to update hook state.
+    // This listener automatically fires once with current auth state upon subscription.
+    const unsubscribe = authService.onAuthStateChange((firebaseUser) => {
+      syncUser(firebaseUser);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  const refetch = () => {
+    authService.getCurrentUser().then((firebaseUser) => {
+      syncUser(firebaseUser);
+    });
+  };
 
   return {
     user,
     isLoading,
     isAuthenticated: !!user,
-    refetch: fetchUser,
+    refetch,
   };
 }

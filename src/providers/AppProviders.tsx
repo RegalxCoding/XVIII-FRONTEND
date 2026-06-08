@@ -1,7 +1,8 @@
 'use client';
 
-import { type ReactNode } from 'react';
+import { type ReactNode, useEffect } from 'react';
 import CartToast from '@/components/ui/CartToast';
+import { useAuthStore } from '@/store/auth.store';
 
 interface AppProvidersProps {
   children: ReactNode;
@@ -13,6 +14,11 @@ interface AppProvidersProps {
  * Add further providers (auth, theme, etc.) inside this wrapper.
  */
 export default function AppProviders({ children }: AppProvidersProps) {
+  useEffect(() => {
+    // Initialize the global auth store listeners
+    useAuthStore.getState().initialize();
+  }, []);
+
   return (
     <>
       {children}

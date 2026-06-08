@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, X, ShoppingBag } from 'lucide-react';
 import { NAV_LINKS } from '@/constants';
 import { useCartStore } from '@/store/cart.store';
+import { useAuthStore } from '@/store/auth.store';
 
 export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -14,6 +15,9 @@ export default function Navbar() {
   // Reactive cart count from Zustand
   const items = useCartStore((s) => s.items);
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
+
+  // Reactive auth status from Zustand
+  const { isAuthenticated, logout } = useAuthStore();
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 40);
@@ -131,6 +135,41 @@ export default function Navbar() {
               </AnimatePresence>
             </Link>
 
+            {/* Sign In / Sign Out CTA — desktop only */}
+            {isAuthenticated ? (
+              <button
+                onClick={() => logout()}
+                id="navbar-auth-btn"
+                className="
+                  hidden lg:inline-flex items-center
+                  border border-[#B8956A]/30 text-[#B8956A]
+                  px-5 py-2 text-xs tracking-[0.2em] uppercase font-bold
+                  transition-all duration-300
+                  hover:bg-[#B8956A]/10 hover:border-[#B8956A]
+                  active:scale-95 cursor-pointer
+                "
+                style={{ fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif' }}
+              >
+                Sign Out
+              </button>
+            ) : (
+              <Link
+                href="/login"
+                id="navbar-auth-btn"
+                className="
+                  hidden lg:inline-flex items-center
+                  border border-[#B8956A]/30 text-[#B8956A]
+                  px-5 py-2 text-xs tracking-[0.2em] uppercase font-bold
+                  transition-all duration-300
+                  hover:bg-[#B8956A]/10 hover:border-[#B8956A]
+                  active:scale-95
+                "
+                style={{ fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif' }}
+              >
+                Sign In
+              </Link>
+            )}
+
             {/* Order Now CTA — desktop only */}
             <Link
               href="/menu"
@@ -207,46 +246,81 @@ export default function Navbar() {
                 initial={{ opacity: 0, x: 40 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.45, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-                className="pt-4 border-t border-[#B8956A]/20 flex items-center gap-4"
+                className="pt-4 border-t border-[#B8956A]/20 flex flex-col gap-4"
               >
-                <Link
-                  href="/menu"
-                  onClick={() => setIsMobileOpen(false)}
-                  className="
-                    inline-flex items-center
-                    bg-[#B8956A] text-[#15110D]
-                    px-8 py-3.5 text-xs tracking-[0.25em] uppercase font-bold
-                    hover:bg-[#EDE3D0] transition-colors duration-300
-                  "
-                  style={{ fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif' }}
-                >
-                  Order Now
-                </Link>
+                <div className="flex items-center gap-4">
+                  <Link
+                    href="/menu"
+                    onClick={() => setIsMobileOpen(false)}
+                    className="
+                      flex-grow inline-flex items-center justify-center
+                      bg-[#B8956A] text-[#15110D]
+                      py-3.5 text-xs tracking-[0.25em] uppercase font-bold
+                      hover:bg-[#EDE3D0] transition-colors duration-300
+                    "
+                    style={{ fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif' }}
+                  >
+                    Order Now
+                  </Link>
 
-                {/* Cart link — mobile menu */}
-                <Link
-                  href="/cart"
-                  onClick={() => setIsMobileOpen(false)}
-                  id="mobile-cart-link"
-                  className="
-                    inline-flex items-center gap-2
-                    border border-[#B8956A]/30 text-[#EDE3D0]/70
-                    px-6 py-3.5 text-xs tracking-[0.25em] uppercase font-medium
-                    hover:border-[#B8956A] hover:text-[#EDE3D0] transition-colors duration-300
-                  "
-                  style={{ fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif' }}
-                >
-                  <ShoppingBag size={14} />
-                  Cart
-                  {totalItems > 0 && (
-                    <span
-                      className="bg-[#B8956A] text-[#15110D] text-[9px] font-bold px-1.5 py-0.5 rounded-full leading-none"
-                      style={{ fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif' }}
-                    >
-                      {totalItems}
-                    </span>
-                  )}
-                </Link>
+                  {/* Cart link — mobile menu */}
+                  <Link
+                    href="/cart"
+                    onClick={() => setIsMobileOpen(false)}
+                    id="mobile-cart-link"
+                    className="
+                      flex-grow inline-flex items-center justify-center gap-2
+                      border border-[#B8956A]/30 text-[#EDE3D0]/70
+                      py-3.5 text-xs tracking-[0.25em] uppercase font-medium
+                      hover:border-[#B8956A] hover:text-[#EDE3D0] transition-colors duration-300
+                    "
+                    style={{ fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif' }}
+                  >
+                    <ShoppingBag size={14} />
+                    Cart
+                    {totalItems > 0 && (
+                      <span
+                        className="bg-[#B8956A] text-[#15110D] text-[9px] font-bold px-1.5 py-0.5 rounded-full leading-none"
+                        style={{ fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif' }}
+                      >
+                        {totalItems}
+                      </span>
+                    )}
+                  </Link>
+                </div>
+
+                {isAuthenticated ? (
+                  <button
+                    onClick={() => {
+                      logout();
+                      setIsMobileOpen(false);
+                    }}
+                    className="
+                      w-full inline-flex items-center justify-center gap-2
+                      border border-[#B8956A]/30 text-[#EDE3D0]/70
+                      py-3.5 text-xs tracking-[0.25em] uppercase font-medium
+                      hover:border-[#B8956A] hover:text-[#EDE3D0] transition-colors duration-300
+                      cursor-pointer
+                    "
+                    style={{ fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif' }}
+                  >
+                    Sign Out
+                  </button>
+                ) : (
+                  <Link
+                    href="/login"
+                    onClick={() => setIsMobileOpen(false)}
+                    className="
+                      w-full inline-flex items-center justify-center gap-2
+                      border border-[#B8956A]/30 text-[#EDE3D0]/70
+                      py-3.5 text-xs tracking-[0.25em] uppercase font-medium
+                      hover:border-[#B8956A] hover:text-[#EDE3D0] transition-colors duration-300
+                    "
+                    style={{ fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif' }}
+                  >
+                    Sign In
+                  </Link>
+                )}
               </motion.div>
             </div>
 

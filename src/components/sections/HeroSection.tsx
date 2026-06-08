@@ -180,9 +180,9 @@ export default function HeroSection() {
               sizes="(max-width: 1024px) 100vw, 50vw"
               className="object-cover"
             />
-            {/* Dark gradient overlay */}
+            {/* Dark gradient overlay to blend image borders */}
             <div className="absolute inset-0 bg-gradient-to-b from-[#15110D] via-transparent to-[#15110D] opacity-60 lg:opacity-0" />
-            <div className="absolute inset-0 bg-gradient-to-r from-[#15110D] via-transparent to-transparent opacity-60 lg:opacity-70" />
+            <div className="absolute inset-0 bg-gradient-to-r from-[#15110D] via-[#15110D]/30 to-transparent opacity-90 lg:opacity-100" />
           </motion.div>
 
           {/* Floating dessert image card — desktop only, hidden on mobile to prevent overlap */}
