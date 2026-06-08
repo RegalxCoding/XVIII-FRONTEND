@@ -17,20 +17,6 @@
       <feGaussianBlur stdDeviation="3" result="blur" />
       <feComposite in="SourceGraphic" in2="blur" operator="over" />
     </filter>
-
-    <!-- Clip Paths for Typewriter Subtitle phrases -->
-    <clipPath id="clipPhrase1">
-      <rect id="clipRect1" x="330" y="225" width="0" height="20" />
-    </clipPath>
-    <clipPath id="clipPhrase2">
-      <rect id="clipRect2" x="290" y="225" width="0" height="20" />
-    </clipPath>
-    <clipPath id="clipPhrase3">
-      <rect id="clipRect3" x="265" y="225" width="0" height="20" />
-    </clipPath>
-    <clipPath id="clipPhrase4">
-      <rect id="clipRect4" x="280" y="225" width="0" height="20" />
-    </clipPath>
   </defs>
 
   <style>
@@ -113,97 +99,6 @@
       stroke-opacity: 0.6;
       fill: none;
     }
-
-    /* Typewriter Subtitle Group Opacity Animations (18s loop) */
-    @keyframes pg1 {
-      0%, 25% { opacity: 1; }
-      25.01%, 100% { opacity: 0; }
-    }
-    @keyframes pg2 {
-      0%, 25.01% { opacity: 0; }
-      25.02%, 50% { opacity: 1; }
-      50.01%, 100% { opacity: 0; }
-    }
-    @keyframes pg3 {
-      0%, 50.01% { opacity: 0; }
-      50.02%, 75% { opacity: 1; }
-      75.01%, 100% { opacity: 0; }
-    }
-    @keyframes pg4 {
-      0%, 75.01% { opacity: 0; }
-      75.02%, 100% { opacity: 1; }
-    }
-
-    .phrase-group { opacity: 0; }
-    .pg-1 { animation: pg1 18s infinite; }
-    .pg-2 { animation: pg2 18s infinite; }
-    .pg-3 { animation: pg3 18s infinite; }
-    .pg-4 { animation: pg4 18s infinite; }
-
-    /* Typing Animations for Clipping Rectangles */
-    @keyframes type1 {
-      0%, 2% { width: 0; }
-      8%, 20% { width: 140px; }
-      23%, 25% { width: 0; }
-    }
-    @keyframes type2 {
-      25%, 27% { width: 0; }
-      33%, 45% { width: 220px; }
-      48%, 50% { width: 0; }
-    }
-    @keyframes type3 {
-      50%, 52% { width: 0; }
-      58%, 70% { width: 270px; }
-      73%, 75% { width: 0; }
-    }
-    @keyframes type4 {
-      75%, 77% { width: 0; }
-      83%, 95% { width: 240px; }
-      98%, 100% { width: 0; }
-    }
-
-    #clipRect1 { animation: type1 18s infinite; }
-    #clipRect2 { animation: type2 18s infinite; }
-    #clipRect3 { animation: type3 18s infinite; }
-    #clipRect4 { animation: type4 18s infinite; }
-
-    /* Cursor Translation Animations */
-    @keyframes cursor1Move {
-      0%, 2% { transform: translateX(0); }
-      8%, 20% { transform: translateX(140px); }
-      23%, 25% { transform: translateX(0); }
-    }
-    @keyframes cursor2Move {
-      25%, 27% { transform: translateX(0); }
-      33%, 45% { transform: translateX(220px); }
-      48%, 50% { transform: translateX(0); }
-    }
-    @keyframes cursor3Move {
-      50%, 52% { transform: translateX(0); }
-      58%, 70% { transform: translateX(270px); }
-      73%, 75% { transform: translateX(0); }
-    }
-    @keyframes cursor4Move {
-      75%, 77% { transform: translateX(0); }
-      83%, 95% { transform: translateX(240px); }
-      98%, 100% { transform: translateX(0); }
-    }
-
-    .c-1 { animation: cursor1Move 18s infinite, cursorBlink 0.8s step-end infinite; }
-    .c-2 { animation: cursor2Move 18s infinite, cursorBlink 0.8s step-end infinite; }
-    .c-3 { animation: cursor3Move 18s infinite, cursorBlink 0.8s step-end infinite; }
-    .c-4 { animation: cursor4Move 18s infinite, cursorBlink 0.8s step-end infinite; }
-
-    /* Blinking Cursor Utility */
-    @keyframes cursorBlink {
-      0%, 100% { opacity: 0; }
-      50% { opacity: 1; }
-    }
-    .type-cursor {
-      fill: #B8956A;
-      width: 2px;
-      height: 11px;
-    }
   </style>
 
   <!-- Background -->
@@ -243,23 +138,8 @@
   <!-- Main Title -->
   <text x="400" y="215" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="20" font-weight="800" fill="#B8956A" text-anchor="middle" letter-spacing="8">THE XVIII BREW CO.</text>
   
-  <!-- Subtitles with Typewriter Effect -->
-  <g class="phrase-group pg-1">
-    <text x="330" y="238" clip-path="url(#clipPhrase1)" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="9" font-weight="500" fill="#EDE3D0" fill-opacity="0.8" text-anchor="start" letter-spacing="4">CRAFTED COFFEE</text>
-    <rect class="type-cursor c-1" x="330" y="228" />
-  </g>
-  <g class="phrase-group pg-2">
-    <text x="290" y="238" clip-path="url(#clipPhrase2)" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="9" font-weight="500" fill="#EDE3D0" fill-opacity="0.8" text-anchor="start" letter-spacing="4">EXTRAORDINARY DESSERTS</text>
-    <rect class="type-cursor c-2" x="290" y="228" />
-  </g>
-  <g class="phrase-group pg-3">
-    <text x="265" y="238" clip-path="url(#clipPhrase3)" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="9" font-weight="500" fill="#EDE3D0" fill-opacity="0.8" text-anchor="start" letter-spacing="4">SOMETHING HAS BEEN STEEPING</text>
-    <rect class="type-cursor c-3" x="265" y="228" />
-  </g>
-  <g class="phrase-group pg-4">
-    <text x="280" y="238" clip-path="url(#clipPhrase4)" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="9" font-weight="500" fill="#EDE3D0" fill-opacity="0.8" text-anchor="start" letter-spacing="4">STANDARDS WITHOUT LIMITS</text>
-    <rect class="type-cursor c-4" x="280" y="228" />
-  </g>
+  <!-- Subtitle -->
+  <text x="400" y="238" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="9" font-weight="500" fill="#EDE3D0" fill-opacity="0.6" text-anchor="middle" letter-spacing="4">CRAFTED COFFEE • EXTRAORDINARY DESSERTS</text>
 
   <!-- Vertical Editorial Text Left -->
   <text x="50" y="160" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="8" font-weight="500" fill="#EDE3D0" fill-opacity="0.25" letter-spacing="3" transform="rotate(-90 50 160)" text-anchor="middle">EST. 2024</text>
