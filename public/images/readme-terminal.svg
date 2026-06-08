@@ -1,0 +1,137 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 230" width="100%" height="100%">
+  <defs>
+    <!-- Window shadow -->
+    <filter id="shadow" x="-5%" y="-5%" width="110%" height="110%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#000000" flood-opacity="0.5" />
+    </filter>
+  </defs>
+
+  <style>
+    /* Styling */
+    .terminal-bg { fill: #1C1813; stroke: #B8956A; stroke-width: 1.5; stroke-opacity: 0.2; }
+    .title-bar { fill: #130F0B; }
+    .mac-dot { stroke-width: 0; }
+    .dot-red { fill: #ff5f56; }
+    .dot-yellow { fill: #ffbd2e; }
+    .dot-green { fill: #27c93f; }
+    
+    /* Text layout */
+    .term-text {
+      font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+      font-size: 12.5px;
+      line-height: 1.5;
+    }
+    
+    /* Animation delays */
+    @keyframes revealLine {
+      to { opacity: 1; }
+    }
+    
+    @keyframes blink {
+      from, to { opacity: 0; }
+      50% { opacity: 1; }
+    }
+    
+    @keyframes typeEffect {
+      from { width: 92px; }
+      to { width: 0; }
+    }
+    
+    @keyframes cursorMove {
+      from { transform: translateX(0); }
+      to { transform: translateX(92px); }
+    }
+
+    .prompt-label { fill: #B8956A; }
+    .command-text { fill: #EDE3D0; }
+    .output-text { fill: #EDE3D0; fill-opacity: 0.8; opacity: 0; animation: revealLine 0.1s forwards; }
+    .accent-text { fill: #B8956A; }
+    .success-text { fill: #8FBC8F; }
+    
+    /* Timings */
+    .mask-cover {
+      animation: typeEffect 1.2s steps(11) forwards;
+      animation-delay: 0.6s;
+    }
+    
+    .cursor {
+      fill: #EDE3D0;
+      animation: cursorMove 1.2s steps(11) forwards, blink 1s step-end infinite;
+      animation-delay: 0.6s;
+    }
+    
+    .line-2 { animation-delay: 2.1s; }
+    .line-3 { animation-delay: 2.3s; }
+    .line-4 { animation-delay: 2.7s; }
+    .line-5 { animation-delay: 3.1s; }
+    .line-6 { animation-delay: 3.3s; }
+    .line-7 { animation-delay: 3.8s; }
+    .line-8 { animation-delay: 4.4s; }
+
+    /* Cursor end position lock */
+    @keyframes finalCursorBlink {
+      from, to { opacity: 0; }
+      50% { opacity: 1; }
+    }
+    .cursor-final {
+      fill: #B8956A;
+      opacity: 0;
+      animation: revealLine 0.1s forwards, finalCursorBlink 1s step-end infinite;
+      animation-delay: 4.4s;
+    }
+  </style>
+
+  <g filter="url(#shadow)">
+    <!-- Terminal Window -->
+    <rect class="terminal-bg" x="15" y="15" width="570" height="200" rx="8" />
+    
+    <!-- Title Bar -->
+    <path class="title-bar" d="M 15 23 A 8 8 0 0 1 23 15 L 577 15 A 8 8 0 0 1 585 23 L 585 43 L 15 43 Z" />
+    
+    <!-- Window Controls -->
+    <circle class="mac-dot dot-red" cx="35" cy="29" r="6" />
+    <circle class="mac-dot dot-yellow" cx="53" cy="29" r="6" />
+    <circle class="mac-dot dot-green" cx="71" cy="29" r="6" />
+    
+    <!-- Title Text -->
+    <text x="300" y="33" fill="#EDE3D0" fill-opacity="0.4" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11" text-anchor="middle" letter-spacing="1">bash — npm run dev</text>
+    
+    <!-- Console Content -->
+    <g class="term-text" transform="translate(35, 70)">
+      <!-- Line 1: Command input -->
+      <g>
+        <text x="0" y="0"><tspan class="prompt-label">rohit@xviii-brew:~$</tspan> <tspan class="command-text">npm run dev</tspan></text>
+        
+        <!-- Mask to simulate typing "npm run dev" -->
+        <rect class="mask-cover" x="145" y="-12" width="92" height="18" fill="#1C1813" />
+        
+        <!-- Cursor sliding with typing -->
+        <rect class="cursor" x="145" y="-12" width="8" height="15" />
+      </g>
+      
+      <!-- Line 2: npm details -->
+      <text class="output-text line-2" x="0" y="22" fill-opacity="0.4">&gt; frontend@0.1.0 dev</text>
+      
+      <!-- Line 3: dev command execution -->
+      <text class="output-text line-3" x="0" y="40" fill-opacity="0.4">&gt; next dev</text>
+      
+      <!-- Line 4: Next.js Startup Banner -->
+      <text class="output-text line-4" x="0" y="62"><tspan class="accent-text">▲</tspan> Next.js 16.2.7</text>
+      
+      <!-- Line 5: Local Address -->
+      <text class="output-text line-5" x="0" y="80">  - Local:    <tspan class="accent-text">http://localhost:3000</tspan></text>
+      
+      <!-- Line 6: Env File -->
+      <text class="output-text line-6" x="0" y="98">  - Env:      .env.local</text>
+      
+      <!-- Line 7: Compilation complete -->
+      <text class="output-text line-7" x="0" y="120"><tspan class="success-text">✓</tspan> Ready in 1.2s <tspan fill-opacity="0.5">(compiled client and server successfully)</tspan></text>
+
+      <!-- Line 8: Interactive prompt cursor -->
+      <g class="output-text line-8">
+        <text x="0" y="138"><tspan class="prompt-label">rohit@xviii-brew:~$</tspan></text>
+        <rect class="cursor-final" x="145" y="126" width="8" height="15" />
+      </g>
+    </g>
+  </g>
+</svg>

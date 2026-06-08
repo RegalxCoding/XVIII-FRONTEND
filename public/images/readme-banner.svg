@@ -1,0 +1,157 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 320" width="100%" height="100%">
+  <defs>
+    <!-- Background Gradient -->
+    <radialGradient id="bgGrad" cx="50%" cy="50%" r="70%">
+      <stop offset="0%" stop-color="#221B14" />
+      <stop offset="100%" stop-color="#15110D" />
+    </radialGradient>
+
+    <!-- Golden Glow Gradient -->
+    <radialGradient id="goldGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#B8956A" stop-opacity="0.25" />
+      <stop offset="100%" stop-color="#B8956A" stop-opacity="0" />
+    </radialGradient>
+
+    <!-- Text Glow Filter -->
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="3" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <style>
+    /* Base styles */
+    .bg { fill: url(#bgGrad); }
+    .glow-layer { fill: url(#goldGlow); }
+    
+    /* Steam Animation */
+    @keyframes riseSteam {
+      0% {
+        transform: translateY(15px) scaleX(0.85);
+        stroke-dashoffset: 0;
+        opacity: 0;
+      }
+      15% {
+        opacity: 0.45;
+      }
+      80% {
+        opacity: 0.3;
+      }
+      100% {
+        transform: translateY(-45px) scaleX(1.2);
+        stroke-dashoffset: -30;
+        opacity: 0;
+      }
+    }
+    .steam-path {
+      stroke: #EDE3D0;
+      stroke-width: 1.25;
+      stroke-linecap: round;
+      fill: none;
+      stroke-dasharray: 8 16;
+      transform-origin: 400px 90px;
+      animation: riseSteam 5s linear infinite;
+    }
+    .steam-1 { animation-delay: 0s; }
+    .steam-2 { animation-delay: 1.6s; }
+    .steam-3 { animation-delay: 3.2s; }
+
+    /* Logo Glow Pulsation */
+    @keyframes pulseGlow {
+      0%, 100% { opacity: 0.15; }
+      50% { opacity: 0.3; }
+    }
+    .glow-pulse {
+      animation: pulseGlow 4s ease-in-out infinite;
+    }
+
+    /* Sparkles Animation */
+    @keyframes sparklePulse {
+      0%, 100% { opacity: 0.1; transform: scale(0.7); }
+      50% { opacity: 0.9; transform: scale(1.3); }
+    }
+    .sparkle {
+      fill: #B8956A;
+      transform-origin: center;
+      animation: sparklePulse 3s ease-in-out infinite;
+    }
+    .sp-1 { animation-delay: 0.2s; transform-origin: 220px 110px; }
+    .sp-2 { animation-delay: 1.2s; transform-origin: 580px 150px; }
+    .sp-3 { animation-delay: 2.2s; transform-origin: 290px 200px; }
+    .sp-4 { animation-delay: 0.7s; transform-origin: 510px 80px; }
+
+    /* Border line drawing animation */
+    @keyframes drawBorder {
+      from { stroke-dashoffset: 2200; }
+      to { stroke-dashoffset: 0; }
+    }
+    .border-main {
+      stroke: #B8956A;
+      stroke-width: 1.5;
+      stroke-opacity: 0.25;
+      fill: none;
+      stroke-dasharray: 2200;
+      animation: drawBorder 3s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+    .corner-bracket {
+      stroke: #B8956A;
+      stroke-width: 1.5;
+      stroke-opacity: 0.6;
+      fill: none;
+    }
+  </style>
+
+  <!-- Background -->
+  <rect class="bg" width="800" height="320" />
+  
+  <!-- Central Glow -->
+  <circle class="glow-layer glow-pulse" cx="400" cy="130" r="160" />
+
+  <!-- Borders and Editorial Accents -->
+  <rect class="border-main" x="20" y="20" width="760" height="280" />
+  
+  <!-- Corner Brackets -->
+  <path class="corner-bracket" d="M 32 50 L 32 32 L 50 32" />
+  <path class="corner-bracket" d="M 750 32 L 768 32 L 768 50" />
+  <path class="corner-bracket" d="M 32 270 L 32 288 L 50 288" />
+  <path class="corner-bracket" d="M 750 288 L 768 288 L 768 270" />
+
+  <!-- Sparkles -->
+  <!-- Sparkle 1 (+) -->
+  <path class="sparkle sp-1" d="M 220 105 L 220 115 M 215 110 L 225 110" stroke="#B8956A" stroke-width="1" />
+  <!-- Sparkle 2 (Diamond) -->
+  <path class="sparkle sp-2" d="M 580 146 L 583 150 L 580 154 L 577 150 Z" />
+  <!-- Sparkle 3 (+) -->
+  <path class="sparkle sp-3" d="M 290 195 L 290 205 M 285 200 L 295 200" stroke="#B8956A" stroke-width="1" />
+  <!-- Sparkle 4 (Diamond) -->
+  <path class="sparkle sp-4" d="M 510 76 L 513 80 L 510 84 L 507 80 Z" />
+
+  <!-- Steam Rising -->
+  <path class="steam-path steam-1" d="M 388 95 Q 380 75 395 60 T 385 35" />
+  <path class="steam-path steam-2" d="M 400 95 Q 408 75 398 60 T 406 35" />
+  <path class="steam-path steam-3" d="M 412 95 Q 402 75 415 60 T 403 35" />
+
+  <!-- Brand Emblem (Inner Circles) -->
+  <circle cx="400" cy="130" r="55" fill="#15110D" stroke="#B8956A" stroke-width="1" stroke-opacity="0.3" stroke-dasharray="3 3" />
+  <circle cx="400" cy="130" r="46" fill="none" stroke="#B8956A" stroke-width="1.5" stroke-opacity="0.75" />
+  
+  <!-- Roman Numeral XVIII -->
+  <text x="400" y="139" font-family="'Georgia', serif" font-size="26" font-weight="bold" fill="#EDE3D0" text-anchor="middle" letter-spacing="2" filter="url(#glow)">XVIII</text>
+
+  <!-- Typography -->
+  <!-- Main Title -->
+  <text x="400" y="215" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="20" font-weight="800" fill="#B8956A" text-anchor="middle" letter-spacing="8">THE XVIII BREW CO.</text>
+  
+  <!-- Subtitle -->
+  <text x="400" y="238" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="9" font-weight="500" fill="#EDE3D0" fill-opacity="0.6" text-anchor="middle" letter-spacing="4">CRAFTED COFFEE • EXTRAORDINARY DESSERTS</text>
+
+  <!-- Vertical Editorial Text Left -->
+  <text x="50" y="160" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="8" font-weight="500" fill="#EDE3D0" fill-opacity="0.25" letter-spacing="3" transform="rotate(-90 50 160)" text-anchor="middle">EST. 2024</text>
+  
+  <!-- Vertical Editorial Text Right -->
+  <text x="750" y="160" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="8" font-weight="500" fill="#EDE3D0" fill-opacity="0.25" letter-spacing="3" transform="rotate(90 750 160)" text-anchor="middle">SINGLE ORIGIN</text>
+  
+  <!-- Minor Accent Deco -->
+  <line x1="360" y1="255" x2="440" y2="255" stroke="#B8956A" stroke-width="1" stroke-opacity="0.3" />
+  <circle cx="400" cy="255" r="2.5" fill="#B8956A" fill-opacity="0.6" />
+</svg>
