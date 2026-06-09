@@ -1,5 +1,7 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
+import { getFirestore } from 'firebase/firestore';
+import { getStorage } from 'firebase/storage';
 
 // Define configuration with dummy fallback values for build-time static page compilation
 const firebaseConfig = {
@@ -14,11 +16,13 @@ const firebaseConfig = {
 // Initialize Firebase for SSR compatibility (Next.js)
 const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 const auth = getAuth(app);
+const db = getFirestore(app);
+const storage = getStorage(app);
 
 // Use browser's locale for ReCAPTCHA and SMS verification
 if (typeof window !== 'undefined') {
   auth.useDeviceLanguage();
 }
 
-export { app, auth };
+export { app, auth, db, storage };
 export default app;
