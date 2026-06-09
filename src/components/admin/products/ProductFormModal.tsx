@@ -7,7 +7,7 @@ import type { AdminProduct, AdminProductCategory } from '@/types/admin.types';
 
 interface ProductFormModalProps {
   product?: AdminProduct | null;    // null = Add mode
-  onSave: (product: Omit<AdminProduct, 'id' | 'createdAt'>) => void;
+  onSave: (product: Omit<AdminProduct, 'id' | 'createdAt'>, imageFile?: File) => void;
   onCancel: () => void;
 }
 
@@ -27,11 +27,13 @@ export default function ProductFormModal({ product, onSave, onCancel }: ProductF
 
   const [form, setForm] = useState({ ...EMPTY_FORM });
   const [previewUrl, setPreviewUrl] = useState('');
+  const [selectedFile, setSelectedFile] = useState<File | undefined>(undefined);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isDragging, setIsDragging] = useState(false);
 
   // Populate form when editing
   useEffect(() => {
+    setSelectedFile(undefined);
     if (product) {
       setForm({
         name: product.name,
@@ -70,7 +72,7 @@ export default function ProductFormModal({ product, onSave, onCancel }: ProductF
       imageUrl: previewUrl || form.imageUrl || '/images/placeholder.png',
       isAvailable: form.isAvailable,
       isFeatured: form.isFeatured,
-    });
+    }, selectedFile);
   };
 
   const handleImageFile = (file: File) => {
@@ -78,6 +80,7 @@ export default function ProductFormModal({ product, onSave, onCancel }: ProductF
     const url = URL.createObjectURL(file);
     setPreviewUrl(url);
     setForm((f) => ({ ...f, imageUrl: file.name }));
+    setSelectedFile(file);
   };
 
   const handleDrop = (e: React.DragEvent) => {

@@ -1,26 +1,42 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Pencil, Trash2, Plus, Coffee, Cake, Search } from 'lucide-react';
 import Image from 'next/image';
 import AvailabilityToggle from './AvailabilityToggle';
 import ProductFormModal from './ProductFormModal';
 import DeleteConfirmModal from './DeleteConfirmModal';
+import { adminProductsService } from '@/services/admin-products.service';
 import type { AdminProduct } from '@/types/admin.types';
-
-interface ProductsTableProps {
-  initialProducts: AdminProduct[];
-}
 
 type FilterCategory = 'all' | 'coffee' | 'dessert';
 
-export default function ProductsTable({ initialProducts }: ProductsTableProps) {
-  const [products, setProducts] = useState<AdminProduct[]>(initialProducts);
+export default function ProductsTable() {
+  const [products, setProducts] = useState<AdminProduct[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
   const [filter, setFilter] = useState<FilterCategory>('all');
   const [search, setSearch] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [editProduct, setEditProduct] = useState<AdminProduct | null>(null);
   const [deleteProduct, setDeleteProduct] = useState<AdminProduct | null>(null);
+
+  // Load products on mount
+  const fetchProducts = async () => {
+    try {
+      setIsLoading(true);
+      const data = await adminProductsService.getAll();
+      setProducts(data);
+    } catch (err) {
+      console.error('Failed to fetch products:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchProducts();
+  }, []);
 
   // Filtered + searched products
   const filtered = products.filter((p) => {
@@ -30,31 +46,50 @@ export default function ProductsTable({ initialProducts }: ProductsTableProps) {
     return matchCat && matchSearch;
   });
 
-  const handleSave = (data: Omit<AdminProduct, 'id' | 'createdAt'>) => {
-    if (editProduct) {
-      setProducts((prev) =>
-        prev.map((p) => (p.id === editProduct.id ? { ...p, ...data } : p))
-      );
-      setEditProduct(null);
-    } else {
-      const newProduct: AdminProduct = {
-        ...data,
-        id: `product-${Date.now()}`,
-        createdAt: new Date().toISOString(),
-      };
-      setProducts((prev) => [newProduct, ...prev]);
-      setShowAddModal(false);
+  const handleSave = async (data: Omit<AdminProduct, 'id' | 'createdAt'>, imageFile?: File) => {
+    try {
+      setIsSaving(true);
+      if (editProduct) {
+        await adminProductsService.update(editProduct.id, data, imageFile);
+        setEditProduct(null);
+      } else {
+        await adminProductsService.create(data, imageFile);
+        setShowAddModal(false);
+      }
+      await fetchProducts();
+    } catch (err) {
+      console.error('Failed to save product:', err);
+      alert('Failed to save product. Please try again.');
+    } finally {
+      setIsSaving(false);
     }
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (!deleteProduct) return;
-    setProducts((prev) => prev.filter((p) => p.id !== deleteProduct.id));
-    setDeleteProduct(null);
+    try {
+      setIsSaving(true);
+      await adminProductsService.remove(deleteProduct.id);
+      setDeleteProduct(null);
+      await fetchProducts();
+    } catch (err) {
+      console.error('Failed to delete product:', err);
+      alert('Failed to delete product. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const handleToggleAvailability = (id: string, val: boolean) => {
-    setProducts((prev) => prev.map((p) => (p.id === id ? { ...p, isAvailable: val } : p)));
+  const handleToggleAvailability = async (id: string, val: boolean) => {
+    try {
+      // Optimistically update local state first
+      setProducts((prev) => prev.map((p) => (p.id === id ? { ...p, isAvailable: val } : p)));
+      await adminProductsService.toggleAvailability(id, val);
+    } catch (err) {
+      console.error('Failed to toggle availability:', err);
+      // Revert status on failure by refetching
+      await fetchProducts();
+    }
   };
 
   const filterTabs: { key: FilterCategory; label: string; icon: React.ReactNode }[] = [
@@ -156,7 +191,12 @@ export default function ProductsTable({ initialProducts }: ProductsTableProps) {
         </div>
 
         {/* Rows */}
-        {filtered.length === 0 ? (
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center py-20">
+            <div className="w-8 h-8 border-2 border-t-brand-tertiary border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin mb-4" style={{ borderColor: 'rgba(184,149,106,0.2)', borderTopColor: '#B8956A' }}></div>
+            <p className="text-xs tracking-wider uppercase" style={{ color: 'rgba(237,227,208,0.4)', fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif' }}>Loading catalogue…</p>
+          </div>
+        ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20">
             <div
               className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4"
@@ -318,6 +358,15 @@ export default function ProductsTable({ initialProducts }: ProductsTableProps) {
           onConfirm={handleDelete}
           onCancel={() => setDeleteProduct(null)}
         />
+      )}
+
+      {isSaving && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/65 backdrop-blur-xs">
+          <div className="flex flex-col items-center gap-3 p-6 rounded-2xl border" style={{ background: '#1a1410', borderColor: 'rgba(184,149,106,0.2)' }}>
+            <div className="w-8 h-8 border-2 border-t-brand-tertiary border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin" style={{ borderColor: 'rgba(184,149,106,0.2)', borderTopColor: '#B8956A' }}></div>
+            <p className="text-xs tracking-wider uppercase" style={{ color: 'rgba(237,227,208,0.7)', fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif' }}>Updating database…</p>
+          </div>
+        </div>
       )}
     </>
   );

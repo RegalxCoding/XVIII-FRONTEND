@@ -168,7 +168,7 @@ All admin components live under `src/components/admin/`. They use the brand's da
 | `AvailabilityToggle.tsx`| On/Off toggle switch        | A styled toggle switch with a `checked` boolean and `onChange` callback. When on, the track is gold (`#B8956A`). When off, it's a dim dark colour. Shows "Available" / "Out of Stock" label next to the switch.                         |
 | `DeleteConfirmModal.tsx`| Delete confirmation dialog  | A small modal that asks "Are you sure you want to delete [product name]?". Has a Cancel button and a red Confirm Delete button. Prevents accidental deletions.                                                                         |
 
-> **Note:** All admin component state changes (status updates, edits, deletes, adds) are **local React state only**. They reset on page refresh. Wire these to Appwrite SDK calls when the backend is ready.
+> **Note:** Admin orders and auth state changes are **local React state only** and reset on page refresh. Admin products CRUD is fully integrated with **Firebase Firestore & Storage** database.
 
 ---
 
@@ -181,19 +181,20 @@ Located in `src/data/`. Pure TypeScript data — **no Appwrite SDK calls here**.
 | `menuData.ts`      | Dummy menu product data + type defs      | `MenuCategory`, `MenuProduct` interface, `MENU_PRODUCTS` array (8 products: 4 coffee + 4 dessert)  |
 | `adminMockData.ts` | Dummy admin data for products and orders | `MOCK_ADMIN_PRODUCTS` (8 products), `MOCK_ADMIN_ORDERS` (10 orders). Typed with `AdminProduct` and `AdminOrder` from `admin.types.ts`. |
 
-> **Appwrite handoff:** Replace `MENU_PRODUCTS` export in `menuData.ts` with a `databases.listDocuments()` call. Pass results as props to `MenuGrid`. No UI changes required.
+| `adminMockData.ts` | Dummy admin data for orders              | `MOCK_ADMIN_ORDERS` (10 orders). Typed with `AdminOrder` from `admin.types.ts`. |
 
 ---
 
 ### 3.5 Services
 
-Located in `src/services/`. Authentication uses the Firebase Web SDK. Product and Reward services utilize mock local fallbacks.
+Located in `src/services/`.
 
-| File                  | Purpose                                    | Key Methods                                                                                                                 |
-| --------------------- | ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------- |
-| `auth.service.ts`     | Firebase Phone Authentication operations   | `sendOtp(phoneNumber, recaptchaVerifier)`, `confirmOtp(confirmationResult, code)`, `getCurrentUser()`, `logout()`, `isAuthenticated()`, `onAuthStateChange()` |
-| `products.service.ts` | Menu product data from mock data fallback  | `getProducts(filters)`, `getProduct(id)`                                                                                    |
-| `rewards.service.ts`  | Loyalty stamp data from mock data fallback | `getUserStamps(userId)`, `getAvailableRewards()`                                                                            |
+| File                        | Purpose                                          | Key Methods                                                                                                                 |
+| --------------------------- | ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------- |
+| `auth.service.ts`           | Firebase Phone Authentication operations         | `sendOtp(phoneNumber, recaptchaVerifier)`, `confirmOtp(confirmationResult, code)`, `getCurrentUser()`, `logout()`, `isAuthenticated()`, `onAuthStateChange()` |
+| `admin-products.service.ts` | Admin catalogue management (Firestore + Storage) | `getAll()`, `create(data, imageFile?)`, `update(id, data, imageFile?)`, `remove(id)`, `toggleAvailability(id, val)`, `uploadImage(file)` |
+| `products.service.ts`       | Menu product data from mock data fallback        | `getProducts(filters)`, `getProduct(id)`                                                                                    |
+| `rewards.service.ts`        | Loyalty stamp data from mock data fallback       | `getUserStamps(userId)`, `getAvailableRewards()`                                                                            |
 
 ---
 
@@ -308,7 +309,7 @@ Located in `src/lib/`.
 
 | File          | Purpose                                                                                                            | Exports                      |
 | ------------- | ------------------------------------------------------------------------------------------------------------------ | ---------------------------- |
-| `firebase.ts` | Firebase client SDK singleton config. Handles environment variables setup and locale setup for Phone Verification. | `auth`, `app`, `default app` |
+| `firebase.ts` | Firebase client SDK singleton config. Handles config, authentication, Firestore Database, and Storage.             | `auth`, `db`, `storage`, `app`, `default app` |
 
 ---
 
@@ -494,6 +495,7 @@ npm run dev       # Start dev server at localhost:3000
 npm run build     # Production build (verify before deploy)
 npm run start     # Start production server
 npm run lint      # Run ESLint
+npx tsx scripts/seed-products.ts # Seed initial mock products to Firestore
 ```
 
 ---
@@ -505,6 +507,24 @@ npm run lint      # Run ESLint
 ## 10. Changelog
 
 A running log of all significant frontend changes. Most recent first.
+
+---
+
+### 9 June 2026
+
+#### Admin Products Backend — Firestore & Storage Integration
+
+**New files:**
+- [admin-products.service.ts](file:///c:/Users/ROHIT/Desktop/XVII/XVIII-FRONTEND/src/services/admin-products.service.ts) — Admin CRUD operations service integrated with Firebase Firestore and Storage.
+- [seed-products.ts](file:///c:/Users/ROHIT/Desktop/XVII/XVIII-FRONTEND/scripts/seed-products.ts) — Seed script to populate initial mock products into the Firestore database.
+
+**Modified files:**
+- [firebase.ts](file:///c:/Users/ROHIT/Desktop/XVII/XVIII-FRONTEND/src/lib/firebase.ts) — Added Firestore and Storage instance initializations and exports.
+- [ProductFormModal.tsx](file:///c:/Users/ROHIT/Desktop/XVII/XVIII-FRONTEND/src/components/admin/products/ProductFormModal.tsx) — Added state to preserve selected image `File` object and modified `onSave` signature.
+- [ProductsTable.tsx](file:///c:/Users/ROHIT/Desktop/XVII/XVIII-FRONTEND/src/components/admin/products/ProductsTable.tsx) — Wired table operations (fetch, save, toggle, delete) to `adminProductsService` and added loaders/overlays.
+- [page.tsx](file:///c:/Users/ROHIT/Desktop/XVII/XVIII-FRONTEND/src/app/admin/products/page.tsx) — Simplified layout, removing MOCK_ADMIN_PRODUCTS import.
+- [next.config.ts](file:///c:/Users/ROHIT/Desktop/XVII/XVIII-FRONTEND/next.config.ts) — Whitelisted `firebasestorage.googleapis.com` remote pattern.
+- [.env.example](file:///c:/Users/ROHIT/Desktop/XVII/XVIII-FRONTEND/.env.example) — Added comments regarding Firebase Storage/Firestore setup.
 
 ---
 
