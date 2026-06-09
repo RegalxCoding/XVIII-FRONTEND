@@ -1,7 +1,7 @@
 # The XVIII Brew Co. — Project Documentation
 
-> **Last Updated:** 7 June 2026  
-> **Stack:** Next.js 16 · TypeScript · Tailwind CSS v4 · Framer Motion · Appwrite  
+> **Last Updated:** 8 June 2026  
+> **Stack:** Next.js 16 · TypeScript · Tailwind CSS v4 · Framer Motion · Firebase Auth  
 > **Author:** XVIII Brew Co. Development Team
 
 ---
@@ -13,29 +13,31 @@
 3. [Frontend — Full File Reference](#3-frontend--full-file-reference)
    - [App Directory (Pages & Layout)](#31-app-directory)
    - [Components](#32-components)
-   - [Data Layer](#33-data-layer)
-   - [Services (Appwrite)](#34-services)
-   - [Hooks](#35-hooks)
-   - [Store](#36-store)
-   - [Types](#37-types)
-   - [Constants](#38-constants)
-   - [Utils](#39-utils)
-   - [Providers](#310-providers)
-   - [Lib](#311-lib)
-   - [Public Assets](#312-public-assets)
-   - [Config Files](#313-config-files)
+   - [Admin Panel Components](#33-admin-panel-components)
+   - [Data Layer](#34-data-layer)
+   - [Services](#35-services)
+   - [Hooks](#36-hooks)
+   - [Store](#37-store)
+   - [Types](#38-types)
+   - [Constants](#39-constants)
+   - [Utils](#310-utils)
+   - [Providers](#311-providers)
+   - [Lib](#312-lib)
+   - [Public Assets](#313-public-assets)
+   - [Config Files](#314-config-files)
 4. [Design System](#4-design-system)
 5. [Firebase Auth Integration Guide](#5-firebase-auth-integration-guide)
 6. [Environment Variables](#6-environment-variables)
 7. [Pages Reference](#7-pages-reference)
 8. [Component Props Reference](#8-component-props-reference)
 9. [Scripts](#9-scripts)
+10. [Changelog](#10-changelog)
 
 ---
 
 ## 1. Project Overview
 
-**The XVIII Brew Co.** is a premium luxury coffee and artisan dessert brand. This repository contains the full frontend web application — a Next.js 15+ app with a fully editorial, mobile-first design system, Appwrite backend integration, and a structured layered architecture.
+**The XVIII Brew Co.** is a premium luxury coffee and artisan dessert brand. This repository contains the full frontend web application — a Next.js 15+ app with a fully editorial, mobile-first design system, Firebase Phone Authentication, and a structured layered architecture.
 
 **Brand personality:** Premium · Sophisticated · Editorial · Artisan · Community  
 **Brand tagline:** _Something Has Been Steeping._
@@ -185,13 +187,13 @@ Located in `src/data/`. Pure TypeScript data — **no Appwrite SDK calls here**.
 
 ### 3.5 Services
 
-Located in `src/services/`. All services use the Appwrite SDK and pull config from `APPWRITE_CONFIG` in `src/lib/appwrite.ts`. **No IDs are hardcoded.**
+Located in `src/services/`. Authentication uses the Firebase Web SDK. Product and Reward services utilize mock local fallbacks.
 
-| File                  | Purpose                                   | Key Methods                                                                                                                |
-| --------------------- | ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| `auth.service.ts`     | All authentication operations             | `register()`, `login()`, `getCurrentUser()`, `logout()`, `isAuthenticated()`, `sendPasswordRecovery()`, `updatePassword()` |
-| `products.service.ts` | Menu product data from Appwrite Database  | `getProducts(filters)`, `getProduct(id)`, `getBestSellers(limit)`, `getByCategory(category)`                               |
-| `rewards.service.ts`  | Loyalty stamp data from Appwrite Database | `getUserStamps(userId)`, `getAvailableRewards()`                                                                           |
+| File                  | Purpose                                    | Key Methods                                                                                                                 |
+| --------------------- | ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------- |
+| `auth.service.ts`     | Firebase Phone Authentication operations   | `sendOtp(phoneNumber, recaptchaVerifier)`, `confirmOtp(confirmationResult, code)`, `getCurrentUser()`, `logout()`, `isAuthenticated()`, `onAuthStateChange()` |
+| `products.service.ts` | Menu product data from mock data fallback  | `getProducts(filters)`, `getProduct(id)`                                                                                    |
+| `rewards.service.ts`  | Loyalty stamp data from mock data fallback | `getUserStamps(userId)`, `getAvailableRewards()`                                                                            |
 
 ---
 
@@ -304,23 +306,9 @@ Located in `src/providers/AppProviders.tsx`.
 
 Located in `src/lib/`.
 
-| File          | Purpose                                                                                                                      | Exports                                                                                 |
-| ------------- | ---------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| `appwrite.ts` | Appwrite SDK client singleton. Initialises `Client`, `Account`, `Databases`, `Storage`. Reads all config from `process.env`. | `account`, `databases`, `storage`, `APPWRITE_CONFIG`, `ID`, `Query`, `client (default)` |
-
-**`APPWRITE_CONFIG` structure:**
-
-```typescript
-{
-  databaseId: string,
-  collections: {
-    users, products, orders, rewards, coupons
-  },
-  storage: {
-    bucketId: string
-  }
-}
-```
+| File          | Purpose                                                                                                            | Exports                      |
+| ------------- | ------------------------------------------------------------------------------------------------------------------ | ---------------------------- |
+| `firebase.ts` | Firebase client SDK singleton config. Handles environment variables setup and locale setup for Phone Verification. | `auth`, `app`, `default app` |
 
 ---
 
@@ -517,6 +505,59 @@ npm run lint      # Run ESLint
 ## 10. Changelog
 
 A running log of all significant frontend changes. Most recent first.
+
+---
+
+### 8 June 2026
+
+#### Admin Panel — Full Implementation & Frontend UI
+
+**New files:**
+- [admin-login/page.tsx](file:///c:/Users/ROHIT/Desktop/XVII/XVIII-FRONTEND/src/app/admin-login/page.tsx) — Admin login page with credentials form (simulated 900 ms delay authentication).
+- [admin/layout.tsx](file:///c:/Users/ROHIT/Desktop/XVII/XVIII-FRONTEND/src/app/admin/layout.tsx) — Shared layout for all admin dashboard routes (renders sidebar and header).
+- [admin/page.tsx](file:///c:/Users/ROHIT/Desktop/XVII/XVIII-FRONTEND/src/app/admin/page.tsx) — Main dashboard stats panel (Total Products, Total Orders, Pending Orders, Delivered orders).
+- [admin/products/page.tsx](file:///c:/Users/ROHIT/Desktop/XVII/XVIII-FRONTEND/src/app/admin/products/page.tsx) — Products management view.
+- [admin/orders/page.tsx](file:///c:/Users/ROHIT/Desktop/XVII/XVIII-FRONTEND/src/app/admin/orders/page.tsx) — Orders list view.
+- [AdminSidebar.tsx](file:///c:/Users/ROHIT/Desktop/XVII/XVIII-FRONTEND/src/components/admin/layout/AdminSidebar.tsx) — Navigation drawer for desktop (fixed) and mobile (overlay drawer).
+- [AdminHeader.tsx](file:///c:/Users/ROHIT/Desktop/XVII/XVIII-FRONTEND/src/components/admin/layout/AdminHeader.tsx) — Dashboard top header displaying current route info, notifications status, and admin details.
+- [DashboardOverview.tsx](file:///c:/Users/ROHIT/Desktop/XVII/XVIII-FRONTEND/src/components/admin/dashboard/DashboardOverview.tsx) — Dashboard metric cards calculation and display logic.
+- [StatCard.tsx](file:///c:/Users/ROHIT/Desktop/XVII/XVIII-FRONTEND/src/components/admin/dashboard/StatCard.tsx) — Interactive KPI card component.
+- [OrdersTable.tsx](file:///c:/Users/ROHIT/Desktop/XVII/XVIII-FRONTEND/src/components/admin/orders/OrdersTable.tsx) — Responsive order grid with status filter and text search.
+- [OrderDetailDrawer.tsx](file:///c:/Users/ROHIT/Desktop/XVII/XVIII-FRONTEND/src/components/admin/orders/OrderDetailDrawer.tsx) — Slide-out drawer with detailed checkout information and order status controls.
+- [StatusBadge.tsx](file:///c:/Users/ROHIT/Desktop/XVII/XVIII-FRONTEND/src/components/admin/orders/StatusBadge.tsx) — Multi-colored indicators for order fulfillment states.
+- [ProductsTable.tsx](file:///c:/Users/ROHIT/Desktop/XVII/XVIII-FRONTEND/src/components/admin/products/ProductsTable.tsx) — Core product list showing metadata, status toggles, and edit/delete actions.
+- [ProductFormModal.tsx](file:///c:/Users/ROHIT/Desktop/XVII/XVIII-FRONTEND/src/components/admin/products/ProductFormModal.tsx) — Context-aware form modal to add and edit menu offerings.
+- [AvailabilityToggle.tsx](file:///c:/Users/ROHIT/Desktop/XVII/XVIII-FRONTEND/src/components/admin/products/AvailabilityToggle.tsx) — Active availability toggle control switch.
+- [DeleteConfirmModal.tsx](file:///c:/Users/ROHIT/Desktop/XVII/XVIII-FRONTEND/src/components/admin/products/DeleteConfirmModal.tsx) — Simple delete verification modal wrapper.
+- [adminMockData.ts](file:///c:/Users/ROHIT/Desktop/XVII/XVIII-FRONTEND/src/data/adminMockData.ts) — 10 dummy order lists and 8 product data points formatted to match database schemas.
+- [admin.types.ts](file:///c:/Users/ROHIT/Desktop/XVII/XVIII-FRONTEND/src/types/admin.types.ts) — Type definitions for products, order items, and payment modes in admin scope.
+
+**Modified files:**
+- [PROJECT_DOCS.md](file:///c:/Users/ROHIT/Desktop/XVII/XVIII-FRONTEND/docs/PROJECT_DOCS.md) — Added file descriptions for all admin views and dashboard components, and updated types.
+
+#### Authentication — Firebase Phone Auth Integration
+
+**New files:**
+- [firebase.ts](file:///c:/Users/ROHIT/Desktop/XVII/XVIII-FRONTEND/src/lib/firebase.ts) — Firebase client initialization singleton.
+- [LoginForm.tsx](file:///c:/Users/ROHIT/Desktop/XVII/XVIII-FRONTEND/src/components/auth/LoginForm.tsx) — Fully designed, premium mobile login UI utilizing Firebase Phone Auth (ReCaptcha setup and OTP dispatch flows).
+
+**Modified files:**
+- [PROJECT_DOCS.md](file:///c:/Users/ROHIT/Desktop/XVII/XVIII-FRONTEND/docs/PROJECT_DOCS.md) — Replaced Appwrite Database guide sections with Firebase integration references, and marked Appwrite database operations as canceled (switching to local mock storage models for frontend continuity).
+- [login/page.tsx](file:///c:/Users/ROHIT/Desktop/XVII/XVIII-FRONTEND/src/app/login/page.tsx) — Renders `LoginForm` in a styled frame, handling post-auth route redirections.
+- [auth.service.ts](file:///c:/Users/ROHIT/Desktop/XVII/XVIII-FRONTEND/src/services/auth.service.ts) — Re-implemented authentication calls using Firebase Web Auth SDK.
+- [auth.store.ts](file:///c:/Users/ROHIT/Desktop/XVII/XVIII-FRONTEND/src/store/auth.store.ts) — Integrated Zustand auth storage directly with Firebase subscriber states.
+- [useAuth.ts](file:///c:/Users/ROHIT/Desktop/XVII/XVIII-FRONTEND/src/hooks/useAuth.ts) — Custom hook to query active Firebase auth profiles.
+- [Navbar.tsx](file:///c:/Users/ROHIT/Desktop/XVII/XVIII-FRONTEND/src/components/layout/Navbar.tsx) — Dynamic sign-in/sign-out buttons integrated into desktop headers and mobile side drawers.
+- [.env.example](file:///c:/Users/ROHIT/Desktop/XVII/XVIII-FRONTEND/.env.example) — Added necessary Firebase credential properties (`apiKey`, `authDomain`, etc.).
+
+#### Brand Marketing & Visuals — Typewriter and README Animations
+
+**New files:**
+- `public/images/readme-banner.svg` — Dynamic vector graphic header containing coffee branding motifs.
+- `public/images/readme-terminal.svg` — Interactive command-line simulation layout for the documentation banner.
+
+**Modified files:**
+- [README.md](file:///c:/Users/ROHIT/Desktop/XVII/XVIII-FRONTEND/README.md) — Complete revamp of project description landing, showcasing interactive animations with Typewriter text.
 
 ---
 
