@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Phone, Lock, CheckCircle, LogOut, AlertCircle, ArrowRight, ArrowLeft, Loader2 } from 'lucide-react';
@@ -28,16 +28,17 @@ export default function LoginForm() {
   const [error, setError] = useState<string | null>(null);
   const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
 
-  // Initialize invisible recaptcha verifier
+  // Initialize invisible recaptcha verifier singleton
   const initRecaptcha = () => {
     if (typeof window === 'undefined') return null;
     const customWindow = window as unknown as WindowWithRecaptcha;
-    try {
-      // Return existing verifier if initialized to avoid duplicate mounting
-      if (customWindow.recaptchaVerifier) {
-        return customWindow.recaptchaVerifier;
-      }
 
+    // Return existing singleton verifier if already initialized
+    if (customWindow.recaptchaVerifier) {
+      return customWindow.recaptchaVerifier;
+    }
+
+    try {
       const verifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
         size: 'invisible',
         callback: () => {
@@ -47,22 +48,40 @@ export default function LoginForm() {
           setError('reCAPTCHA expired. Please try sending the verification code again.');
         },
       });
-
       customWindow.recaptchaVerifier = verifier;
       return verifier;
-    } catch (err: unknown) {
-      console.error('Failed to initialize ReCAPTCHA', err);
+    } catch (err) {
+      console.error('Failed to initialize ReCAPTCHA singleton:', err);
       setError('Failed to configure security verification.');
       return null;
     }
   };
+
+  // Initialize recaptcha verifier on mount
+  useEffect(() => {
+    initRecaptcha();
+
+    return () => {
+      // Clear verifier on unmount and reset singleton reference
+      if (typeof window !== 'undefined') {
+        const customWindow = window as unknown as WindowWithRecaptcha;
+        if (customWindow.recaptchaVerifier) {
+          try {
+            customWindow.recaptchaVerifier.clear();
+          } catch (clearErr) {
+            console.error('Error clearing ReCAPTCHA verifier:', clearErr);
+          }
+          customWindow.recaptchaVerifier = undefined;
+        }
+      }
+    };
+  }, []);
 
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setLoading(true);
 
-    const customWindow = window as unknown as WindowWithRecaptcha;
     try {
       const verifier = initRecaptcha();
       if (!verifier) {
@@ -90,13 +109,17 @@ export default function LoginForm() {
     } catch (err: unknown) {
       console.error('Error sending OTP:', err);
       const ex = err as Error;
-      // Clean up verifier on failure so next attempt gets a fresh verifier
-      if (customWindow.recaptchaVerifier) {
-        try {
-          customWindow.recaptchaVerifier.clear();
+
+      // Clear and reset verifier on fatal/credential errors so next attempt gets a fresh verifier
+      if (typeof window !== 'undefined') {
+        const customWindow = window as unknown as WindowWithRecaptcha;
+        if (customWindow.recaptchaVerifier) {
+          try {
+            customWindow.recaptchaVerifier.clear();
+          } catch (clearErr) {
+            console.error('Error clearing ReCAPTCHA verifier after failure:', clearErr);
+          }
           customWindow.recaptchaVerifier = undefined;
-        } catch (clearErr) {
-          console.error(clearErr);
         }
       }
       setError(ex.message || 'Unable to send SMS verification code. Please check the number and try again.');
@@ -211,7 +234,7 @@ export default function LoginForm() {
       className="w-full max-w-md bg-[#1e1812] border border-[#B8956A]/15 p-8 md:p-10 shadow-2xl relative"
     >
       {/* Invisible ReCAPTCHA placeholder */}
-      <div id="recaptcha-container" className="hidden"></div>
+      <div id="recaptcha-container" className="absolute opacity-0 pointer-events-none"></div>
 
       <AnimatePresence mode="wait">
         {step === 'phone' ? (

@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ProductCard from '@/components/menu/ProductCard';
-import { MENU_PRODUCTS, type MenuCategory, type MenuProduct } from '@/data/menuData';
+import { type MenuCategory, type MenuProduct } from '@/data/menuData';
 import { useCartStore } from '@/store/cart.store';
 import { fireCartToast } from '@/components/ui/CartToast';
+import { productsService, mapProductToMenuProduct } from '@/services/products.service';
 
 // ─────────────────────────────────────────
 // Filter Tab definition
@@ -25,28 +26,134 @@ interface FilterTab {
 
 export default function MenuGrid() {
   const [activeFilter, setActiveFilter] = useState<FilterOption>('all');
+  const [allProducts, setAllProducts] = useState<MenuProduct[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
 
   const addToCart = useCartStore((s) => s.addToCart);
 
-  // Build tab counts from current data (will reflect Appwrite data once connected)
+  // Fetch products from Firebase on mount
+  useEffect(() => {
+    let isMounted = true;
+    async function fetchMenu() {
+      try {
+        setIsLoading(true);
+        setError(null);
+        const rawProducts = await productsService.getProducts({ isAvailable: true });
+        if (isMounted) {
+          const mapped = rawProducts.map(mapProductToMenuProduct);
+          setAllProducts(mapped);
+        }
+      } catch (err: any) {
+        console.error('Failed to load menu products from Firestore:', err);
+        if (isMounted) {
+          setError('Failed to load the menu catalog. Please try again.');
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    }
+    fetchMenu();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // Build tab counts dynamically from Firestore data
   const tabs: FilterTab[] = useMemo(() => [
-    { id: 'all',     label: 'All',      count: MENU_PRODUCTS.filter(p => p.available).length },
-    { id: 'coffee',  label: 'Coffee',   count: MENU_PRODUCTS.filter(p => p.category === 'coffee'  && p.available).length },
-    { id: 'dessert', label: 'Desserts', count: MENU_PRODUCTS.filter(p => p.category === 'dessert' && p.available).length },
-  ], []);
+    { id: 'all',     label: 'All',      count: allProducts.length },
+    { id: 'coffee',  label: 'Coffee',   count: allProducts.filter(p => p.category === 'coffee').length },
+    { id: 'dessert', label: 'Desserts', count: allProducts.filter(p => p.category === 'dessert').length },
+  ], [allProducts]);
 
   // Filtered products
   const products: MenuProduct[] = useMemo(() => {
-    const available = MENU_PRODUCTS.filter(p => p.available);
-    if (activeFilter === 'all') return available;
-    return available.filter(p => p.category === activeFilter);
-  }, [activeFilter]);
+    if (activeFilter === 'all') return allProducts;
+    return allProducts.filter(p => p.category === activeFilter);
+  }, [allProducts, activeFilter]);
 
   // Add to cart handler — connected to Zustand + toast
   const handleAdd = (product: MenuProduct) => {
     addToCart(product);
     fireCartToast(product.name);
   };
+
+  if (isLoading) {
+    return (
+      <section id="menu-grid" className="py-20 lg:py-28">
+        <div className="container-brand">
+          {/* Tab skeleton */}
+          <div className="mb-16 lg:mb-20">
+            <div className="flex items-center gap-4 mb-10">
+              <div className="w-10 h-px bg-[#B8956A]/20" />
+              <div className="w-28 h-3 bg-[#B8956A]/10 animate-pulse rounded" />
+            </div>
+            <div className="flex gap-4">
+              <div className="w-24 h-10 bg-[#B8956A]/5 border border-[#B8956A]/10 animate-pulse" />
+              <div className="w-28 h-10 bg-[#B8956A]/5 border border-[#B8956A]/10 animate-pulse" />
+              <div className="w-28 h-10 bg-[#B8956A]/5 border border-[#B8956A]/10 animate-pulse" />
+            </div>
+          </div>
+
+          {/* Grid skeleton */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5 lg:gap-6">
+            {[...Array(8)].map((_, i) => (
+              <div
+                key={i}
+                className="flex flex-col bg-[#1a1410]/50 border border-[#B8956A]/10 animate-pulse overflow-hidden"
+                style={{ height: '480px' }}
+              >
+                {/* Image skeleton */}
+                <div className="w-full bg-[#15110d]/40 flex-shrink-0" style={{ aspectRatio: '4/5' }} />
+                {/* Content skeleton */}
+                <div className="flex flex-col flex-1 p-6 lg:p-7 gap-4">
+                  <div className="flex justify-between items-center">
+                     <div className="w-2/3 h-5 bg-[#EDE3D0]/10 rounded" />
+                     <div className="w-12 h-5 bg-[#B8956A]/10 rounded" />
+                  </div>
+                  <div className="w-6 h-px bg-[#B8956A]/20" />
+                  <div className="w-full h-4 bg-[#EDE3D0]/5 rounded" />
+                  <div className="w-5/6 h-4 bg-[#EDE3D0]/5 rounded" />
+                  <div className="w-20 h-8 mt-auto bg-[#B8956A]/5 border border-[#B8956A]/10" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  if (error) {
+    return (
+      <section id="menu-grid" className="py-32 text-center bg-[#15110D]">
+        <div className="container-brand">
+          <div className="w-12 h-px bg-[#B8956A]/30 mx-auto mb-8" />
+          <p
+            className="text-[#EDE3D0]/60 text-sm tracking-[0.2em] uppercase mb-8"
+            style={{ fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif' }}
+          >
+            {error}
+          </p>
+          <button
+            onClick={() => window.location.reload()}
+            className="
+              inline-flex items-center gap-2
+              border border-[#B8956A] text-[#B8956A]
+              px-7 py-3.5 text-xs tracking-[0.2em] uppercase font-medium
+              hover:bg-[#B8956A] hover:text-[#15110D]
+              transition-all duration-300
+            "
+            style={{ fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif' }}
+          >
+            Try Again
+          </button>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section id="menu-grid" className="py-20 lg:py-28">
