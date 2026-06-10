@@ -193,7 +193,7 @@ Located in `src/services/`.
 | --------------------------- | ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------- |
 | `auth.service.ts`           | Firebase Phone Authentication operations         | `sendOtp(phoneNumber, recaptchaVerifier)`, `confirmOtp(confirmationResult, code)`, `getCurrentUser()`, `logout()`, `isAuthenticated()`, `onAuthStateChange()` |
 | `admin-products.service.ts` | Admin catalogue management (Firestore + Storage) | `getAll()`, `create(data, imageFile?)`, `update(id, data, imageFile?)`, `remove(id)`, `toggleAvailability(id, val)`, `uploadImage(file)` |
-| `products.service.ts`       | Menu product data from mock data fallback        | `getProducts(filters)`, `getProduct(id)`                                                                                    |
+| `products.service.ts`       | Menu product data from Firebase Firestore        | `getProducts(filters)`, `getProduct(id)`, `getBestSellers(limit)`, `getByCategory(category)`                                |
 | `rewards.service.ts`        | Loyalty stamp data from mock data fallback       | `getUserStamps(userId)`, `getAvailableRewards()`                                                                            |
 
 ---
@@ -507,6 +507,19 @@ npx tsx scripts/seed-products.ts # Seed initial mock products to Firestore
 ## 10. Changelog
 
 A running log of all significant frontend changes. Most recent first.
+
+---
+
+### 10 June 2026
+
+#### Customer Frontend Backend — Firebase Firestore Products Integration
+
+**Modified files:**
+- [products.service.ts](file:///c:/Users/ROHIT/Desktop/XVII/XVIII-FRONTEND/src/services/products.service.ts) — Re-implemented data retrieval methods to fetch products from the Firebase Firestore database, using memory-based filtering for performance and composite index safety.
+- [MenuGrid.tsx](file:///c:/Users/ROHIT/Desktop/XVII/XVIII-FRONTEND/src/components/menu/MenuGrid.tsx) — Swapped local mock array fallback for live Firestore fetching. Added shimmer loader skeleton and retry trigger states.
+- [BestSellersSection.tsx](file:///c:/Users/ROHIT/Desktop/XVII/XVIII-FRONTEND/src/components/sections/BestSellersSection.tsx) — Connected best-selling products component to dynamic database collection with editorial loading skeleton state.
+- [LoginForm.tsx](file:///c:/Users/ROHIT/Desktop/XVII/XVIII-FRONTEND/src/components/auth/LoginForm.tsx) — Changed recaptcha-container styling from `hidden` to `absolute opacity-0 pointer-events-none` to prevent Firebase `auth/invalid-app-credential` errors, and refactored ReCAPTCHA verifier initialization to React hooks to resolve duplicate render failures.
+- [PROJECT_DOCS.md](file:///c:/Users/ROHIT/Desktop/XVII/XVIII-FRONTEND/docs/PROJECT_DOCS.md) — Updated service tables and recorded development transitions in logs.
 
 ---
 
