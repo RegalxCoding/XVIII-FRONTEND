@@ -21,11 +21,8 @@ export default function OrderSummary() {
   const isEmpty = items.length === 0;
 
   const handleCheckout = () => {
-    if (!isAuthenticated) {
-      router.push('/login');
-    } else {
-      router.push('/checkout');
-    }
+    // Allowing proceed to checkout even if not authenticated for testing the new checkout page
+    router.push('/checkout');
   };
 
   return (
@@ -133,7 +130,7 @@ export default function OrderSummary() {
               : 'Login to checkout'
         }
       >
-        {isAuthenticated ? 'Proceed to Checkout' : 'Login to Checkout'}
+        Proceed to Checkout
         {!isEmpty && (
           <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform duration-300" />
         )}

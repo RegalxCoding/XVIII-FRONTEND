@@ -216,6 +216,7 @@ Located in `src/store/`. Uses **Zustand** for global state.
 | ---------------- | -------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
 | `auth.store.ts`  | Global authentication state. Used across the app to read/write user session.                       | `{ user, isLoading, isAuthenticated, setUser(), initialize(), logout() }`                                                           |
 | `cart.store.ts`  | Cart state — persisted to `localStorage` via Zustand `persist` middleware (key: `xviii-cart`).     | `{ items: CartItem[], addToCart(), removeFromCart(), updateQuantity(), clearCart(), getTotalItems(), getSubtotal() }` |
+| `order.store.ts` | Order history state — persisted to `localStorage` (key: `xviii-orders`).                           | `{ orders: Order[], placeOrder(), updateOrderStatus(), getOrderById() }`                                              |
 
 **`CartItem` shape:**
 ```typescript
@@ -437,7 +438,9 @@ cp .env.example .env.local
 | `/contact`      | `app/contact/page.tsx`      | Static        | 🔧 Scaffold      | —                                                                        |
 | `/rewards`      | `app/rewards/page.tsx`      | Static        | 🔧 Scaffold      | —                                                                        |
 | `/login`        | `app/login/page.tsx`        | Static        | 🔧 Scaffold      | Cart checkout redirects here when unauthenticated                        |
-| `/checkout`     | _(not yet created)_         | Client        | ⬜ Not started   | Checkout button routes here when user is authenticated                   |
+| `/checkout`     | `app/checkout/page.tsx`     | Client        | ✅ Complete      | Delivery form, live location detection, summary, place order.            |
+| `/order-success`| `app/order-success/page.tsx`| Client        | ✅ Complete      | Success confirmation, displays order ID and estimated time.              |
+| `/dashboard`    | `app/dashboard/page.tsx`    | Client        | ✅ Complete      | User dashboard displaying order history and status.                      |
 
 > **✅ Complete** = fully functional with dummy data, ready for Appwrite integration.  
 > **🔧 Scaffold** = page structure in place, data/forms not yet connected.  
