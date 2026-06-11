@@ -37,7 +37,7 @@ export interface Order {
 interface OrderState {
   orders: Order[];
   // ── Actions ──────────────────────────────
-  placeOrder: (order: Omit<Order, 'id' | 'status' | 'date' | 'paymentMethod'>) => string;
+  placeOrder: (order: Omit<Order, 'id' | 'status' | 'date' | 'paymentMethod'>, pregeneratedId?: string) => string;
   updateOrderStatus: (orderId: string, status: OrderStatus) => void;
   // ── Selectors ────────────────────────────
   getOrderById: (id: string) => Order | undefined;
@@ -53,8 +53,8 @@ export const useOrderStore = create<OrderState>()(
       orders: [],
 
       // ── Place a new order ──
-      placeOrder: (orderData) => {
-        const id = `ORD-${Math.floor(100000 + Math.random() * 900000)}`;
+      placeOrder: (orderData, pregeneratedId) => {
+        const id = pregeneratedId || `ORD-${Math.floor(100000 + Math.random() * 900000)}`;
         const newOrder: Order = {
           ...orderData,
           id,
