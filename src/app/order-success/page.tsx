@@ -8,6 +8,7 @@ import { CheckCircle, Clock, FileText, ArrowRight, Package } from 'lucide-react'
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import { useOrderStore, Order } from '@/store/order.store';
+import { ordersService, mapAdminStatusToCustomerStatus } from '@/services/orders.service';
 
 function OrderSuccessContent() {
   const searchParams = useSearchParams();
@@ -25,7 +26,51 @@ function OrderSuccessContent() {
       if (foundOrder) {
         setOrder(foundOrder);
       } else {
-        router.push('/dashboard');
+        // Fetch from Firestore in case the order is placed on another device or cache was cleared
+        const fetchOrder = async () => {
+          try {
+            const dbOrder = await ordersService.getById(orderId);
+            if (dbOrder) {
+              setOrder({
+                id: dbOrder.id,
+                items: dbOrder.items.map((item) => ({
+                  product: {
+                    id: item.productId,
+                    name: item.productName,
+                    price: item.price,
+                    image: item.imageUrl || '',
+                    description: '',
+                    category: 'coffee',
+                    available: true,
+                    featured: false,
+                    stampReward: 1
+                  },
+                  quantity: item.quantity
+                })),
+                subtotal: dbOrder.subtotal,
+                deliveryFee: dbOrder.deliveryCharge,
+                total: dbOrder.totalAmount,
+                address: {
+                  fullName: dbOrder.customerName,
+                  phone: dbOrder.customerPhone,
+                  fullAddress: dbOrder.customerAddress,
+                  city: 'Kanpur',
+                },
+                location: dbOrder.location || null,
+                status: mapAdminStatusToCustomerStatus(dbOrder.status) as any,
+                date: dbOrder.createdAt,
+                paymentMethod: 'Cash on Delivery',
+                estimatedTime: '25–35 minutes'
+              });
+            } else {
+              router.push('/dashboard');
+            }
+          } catch (e) {
+            console.error("Error fetching order in success page:", e);
+            router.push('/dashboard');
+          }
+        };
+        fetchOrder();
       }
     } else {
       router.push('/');

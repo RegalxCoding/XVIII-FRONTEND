@@ -1,10 +1,13 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import AdminHeader from '@/components/admin/layout/AdminHeader';
 import DashboardOverview from '@/components/admin/dashboard/DashboardOverview';
-import { MOCK_ADMIN_PRODUCTS, MOCK_ADMIN_ORDERS } from '@/data/adminMockData';
 import Link from 'next/link';
-import { ArrowRight, ShoppingBag, ClipboardList, TrendingUp } from 'lucide-react';
+import { ArrowRight, ShoppingBag, ClipboardList, TrendingUp, Loader2 } from 'lucide-react';
+import { adminProductsService } from '@/services/admin-products.service';
+import { ordersService } from '@/services/orders.service';
+import type { AdminProduct, AdminOrder } from '@/types/admin.types';
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
   pending:   { label: 'Pending',   color: '#fb923c', bg: 'rgba(251,146,60,0.12)' },
@@ -15,32 +18,74 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }
   cancelled: { label: 'Cancelled', color: '#f87171', bg: 'rgba(248,113,113,0.12)' },
 };
 
-const QUICK_ACTIONS = [
-  {
-    label: 'Manage Products',
-    desc: 'Add, edit, or remove products',
-    href: '/admin/products',
-    icon: <ShoppingBag size={18} />,
-    accent: '#B8956A',
-  },
-  {
-    label: 'View Orders',
-    desc: 'Review and update order statuses',
-    href: '/admin/orders',
-    icon: <ClipboardList size={18} />,
-    accent: '#60a5fa',
-  },
-  {
-    label: 'Pending Orders',
-    desc: `${MOCK_ADMIN_ORDERS.filter(o => o.status === 'pending').length} orders awaiting action`,
-    href: '/admin/orders',
-    icon: <TrendingUp size={18} />,
-    accent: '#fb923c',
-  },
-];
-
 export default function AdminDashboardPage() {
-  const recentOrders = MOCK_ADMIN_ORDERS.slice(0, 5);
+  const [products, setProducts] = useState<AdminProduct[]>([]);
+  const [orders, setOrders] = useState<AdminOrder[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    let unsubscribeOrders = () => {};
+    
+    const loadData = async () => {
+      try {
+        const prodData = await adminProductsService.getAll();
+        setProducts(prodData);
+        
+        unsubscribeOrders = ordersService.subscribeAll((ordersData) => {
+          setOrders(ordersData);
+          setIsLoading(false);
+        });
+      } catch (err) {
+        console.error("Failed to load admin dashboard data:", err);
+        setIsLoading(false);
+      }
+    };
+
+    loadData();
+    return () => unsubscribeOrders();
+  }, []);
+
+  const recentOrders = orders.slice(0, 5);
+  const pendingCount = orders.filter(o => o.status === 'pending').length;
+
+  const quickActions = [
+    {
+      label: 'Manage Products',
+      desc: 'Add, edit, or remove products',
+      href: '/admin/products',
+      icon: <ShoppingBag size={18} />,
+      accent: '#B8956A',
+    },
+    {
+      label: 'View Orders',
+      desc: 'Review and update order statuses',
+      href: '/admin/orders',
+      icon: <ClipboardList size={18} />,
+      accent: '#60a5fa',
+    },
+    {
+      label: 'Pending Orders',
+      desc: `${pendingCount} order${pendingCount !== 1 ? 's' : ''} awaiting action`,
+      href: '/admin/orders',
+      icon: <TrendingUp size={18} />,
+      accent: '#fb923c',
+    },
+  ];
+
+  if (isLoading) {
+    return (
+      <main className="bg-[#15110D] min-h-screen flex flex-col">
+        <AdminHeader
+          title="Dashboard"
+          subtitle="Welcome back. Here's your store overview."
+        />
+        <div className="flex-1 flex flex-col items-center justify-center py-20">
+          <Loader2 className="w-8 h-8 animate-spin text-[#B8956A] mb-4" />
+          <p className="text-xs tracking-wider uppercase text-[#EDE3D0]/40 font-medium" style={{ fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif' }}>Loading store data…</p>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <>
@@ -52,8 +97,8 @@ export default function AdminDashboardPage() {
       <div className="p-6 space-y-8">
         {/* Stat cards */}
         <DashboardOverview
-          products={MOCK_ADMIN_PRODUCTS}
-          orders={MOCK_ADMIN_ORDERS}
+          products={products}
+          orders={orders}
         />
 
         {/* Quick actions */}
@@ -65,7 +110,7 @@ export default function AdminDashboardPage() {
             Quick Actions
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {QUICK_ACTIONS.map((action) => (
+            {quickActions.map((action) => (
               <Link
                 key={action.href + action.label}
                 href={action.href}

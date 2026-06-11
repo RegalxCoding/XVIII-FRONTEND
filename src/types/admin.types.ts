@@ -47,6 +47,8 @@ export interface AdminOrder {
   status: AdminOrderStatus;
   notes?: string;
   createdAt: string;
+  userId?: string | null;
+  location?: { lat: number; lng: number } | null;
 }
 
 // ─────────────────────────────────────────

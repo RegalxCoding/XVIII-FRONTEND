@@ -195,6 +195,7 @@ Located in `src/services/`.
 | `admin-products.service.ts` | Admin catalogue management (Firestore + Storage) | `getAll()`, `create(data, imageFile?)`, `update(id, data, imageFile?)`, `remove(id)`, `toggleAvailability(id, val)`, `uploadImage(file)` |
 | `products.service.ts`       | Menu product data from Firebase Firestore        | `getProducts(filters)`, `getProduct(id)`, `getBestSellers(limit)`, `getByCategory(category)`                                |
 | `rewards.service.ts`        | Loyalty stamp data from mock data fallback       | `getUserStamps(userId)`, `getAvailableRewards()`                                                                            |
+| `orders.service.ts`         | Customer and Admin orders management (Firestore) | `create(orderData)`, `getById(id)`, `getByUserId(userId)`, `getAll()`, `updateStatus(id, status)`, `subscribeAll(callback)`, `subscribeByUserId(userId, callback)` |
 
 ---
 
@@ -216,7 +217,7 @@ Located in `src/store/`. Uses **Zustand** for global state.
 | ---------------- | -------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
 | `auth.store.ts`  | Global authentication state. Used across the app to read/write user session.                       | `{ user, isLoading, isAuthenticated, setUser(), initialize(), logout() }`                                                           |
 | `cart.store.ts`  | Cart state — persisted to `localStorage` via Zustand `persist` middleware (key: `xviii-cart`).     | `{ items: CartItem[], addToCart(), removeFromCart(), updateQuantity(), clearCart(), getTotalItems(), getSubtotal() }` |
-| `order.store.ts` | Order history state — persisted to `localStorage` (key: `xviii-orders`).                           | `{ orders: Order[], placeOrder(), updateOrderStatus(), getOrderById() }`                                              |
+| `order.store.ts` | Order history state — persisted to `localStorage` (key: `xviii-orders`). Supports pre-generated ID sync. | `{ orders: Order[], placeOrder(orderData, pregeneratedId?), updateOrderStatus(), getOrderById() }`                 |
 
 **`CartItem` shape:**
 ```typescript
@@ -257,7 +258,7 @@ interface AdminOrder {
   subtotal, deliveryCharge, totalAmount,
   paymentMethod: 'cash_on_delivery' | 'online' | 'card',
   status: 'pending' | 'confirmed' | 'preparing' | 'ready' | 'delivered' | 'cancelled',
-  notes?, createdAt
+  notes?, createdAt, userId?, location?
 }
 ```
 
@@ -431,18 +432,18 @@ cp .env.example .env.local
 | Route           | File                        | Type          | Status           | Notes                                                                    |
 | --------------- | --------------------------- | ------------- | ---------------- | ------------------------------------------------------------------------ |
 | `/`             | `app/page.tsx`              | Static        | ✅ Complete      | Full landing page with all 8 sections                                    |
-| `/menu`         | `app/menu/page.tsx`         | Static        | ✅ Complete      | Hero + filterable product grid. Dummy data. Ready for Appwrite handoff.  |
+| `/menu`         | `app/menu/page.tsx`         | Static        | ✅ Complete      | Hero + filterable product grid, integrated with Firebase Firestore.      |
 | `/cart`         | `app/cart/page.tsx`         | Client        | ✅ Complete      | Zustand cart, quantity controls, order summary, empty state              |
 | `/product/[id]` | `app/product/[id]/page.tsx` | Dynamic (SSR) | 🔧 Scaffold      | —                                                                        |
 | `/about`        | `app/about/page.tsx`        | Static        | 🔧 Scaffold      | —                                                                        |
 | `/contact`      | `app/contact/page.tsx`      | Static        | 🔧 Scaffold      | —                                                                        |
 | `/rewards`      | `app/rewards/page.tsx`      | Static        | 🔧 Scaffold      | —                                                                        |
 | `/login`        | `app/login/page.tsx`        | Static        | 🔧 Scaffold      | Cart checkout redirects here when unauthenticated                        |
-| `/checkout`     | `app/checkout/page.tsx`     | Client        | ✅ Complete      | Delivery form, live location detection, summary, place order.            |
-| `/order-success`| `app/order-success/page.tsx`| Client        | ✅ Complete      | Success confirmation, displays order ID and estimated time.              |
-| `/dashboard`    | `app/dashboard/page.tsx`    | Client        | ✅ Complete      | User dashboard displaying order history and status.                      |
+| `/checkout`     | `app/checkout/page.tsx`     | Client        | ✅ Complete      | Delivery form, live location detection, summary, places order in Firestore. |
+| `/order-success`| `app/order-success/page.tsx`| Client        | ✅ Complete      | Success confirmation, displays order ID and details from Firestore.       |
+| `/dashboard`    | `app/dashboard/page.tsx`    | Client        | ✅ Complete      | User dashboard displaying real-time order history and status from Firestore. |
 
-> **✅ Complete** = fully functional with dummy data, ready for Appwrite integration.  
+> **✅ Complete** = fully functional, integrated with Firebase Firestore.  
 > **🔧 Scaffold** = page structure in place, data/forms not yet connected.  
 > **⬜ Not started** = route planned but file not yet created.
 
@@ -510,6 +511,19 @@ npx tsx scripts/seed-products.ts # Seed initial mock products to Firestore
 ## 10. Changelog
 
 A running log of all significant frontend changes. Most recent first.
+
+---
+
+### 11 June 2026
+
+#### Order Flow Backend — Firebase Firestore Orders Integration
+- Created [orders.service.ts](file:///c:/Users/ROHIT/Desktop/XVII/XVIII-FRONTEND/src/services/orders.service.ts) handling Firestore CRUD operations, user filtering, and real-time dashboard listeners.
+- Connected checkout page (`app/checkout/page.tsx`) to publish new orders to Firestore, supporting guest/authenticated checkouts.
+- Updated customer dashboard (`app/dashboard/page.tsx`) to subscribe to their order history in real-time.
+- Connected admin dashboard metrics (`app/admin/page.tsx`) to compute live statistics (Pending, Delivered, Total Orders) dynamically using Firestore data.
+- Refactored `OrdersTable.tsx` to subscribe to all store orders in real-time, syncing status updates directly to Firestore.
+- Updated `AdminOrder` types to contain `userId` and detected delivery `location` coordinates.
+- Fixed `LoginForm.tsx` ReCAPTCHA verification issues under local development.
 
 ---
 

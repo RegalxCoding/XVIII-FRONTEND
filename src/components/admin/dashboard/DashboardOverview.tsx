@@ -15,8 +15,8 @@ export default function DashboardOverview({ products, orders }: DashboardOvervie
   const pendingOrders = orders.filter((o) => o.status === 'pending').length;
   const deliveredOrders = orders.filter((o) => o.status === 'delivered').length;
 
-  // Orders placed today (mock: using june 8 2025)
-  const todayStr = '2025-06-08';
+  // Orders placed today using actual dynamic current date (YYYY-MM-DD)
+  const todayStr = new Date().toISOString().split('T')[0];
   const todayOrders = orders.filter((o) => o.createdAt.startsWith(todayStr)).length;
 
   const stats = [

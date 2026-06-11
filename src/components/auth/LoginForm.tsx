@@ -234,7 +234,7 @@ export default function LoginForm() {
       className="w-full max-w-md bg-[#1e1812] border border-[#B8956A]/15 p-8 md:p-10 shadow-2xl relative"
     >
       {/* Invisible ReCAPTCHA placeholder */}
-      <div id="recaptcha-container" className="absolute opacity-0 pointer-events-none"></div>
+      <div id="recaptcha-container"></div>
 
       <AnimatePresence mode="wait">
         {step === 'phone' ? (

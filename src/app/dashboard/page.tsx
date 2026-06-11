@@ -6,17 +6,81 @@ import Link from 'next/link';
 import { Package, Clock, MapPin, ChevronRight, User, Settings, LogOut, ArrowRight, Wallet } from 'lucide-react';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
-import { useOrderStore, Order } from '@/store/order.store';
+import { useOrderStore } from '@/store/order.store';
+import { useAuthStore } from '@/store/auth.store';
+import { ordersService, mapAdminStatusToCustomerStatus } from '@/services/orders.service';
+import type { Order } from '@/store/order.store';
+import type { AdminOrder } from '@/types/admin.types';
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
 export default function DashboardPage() {
   const [isMounted, setIsMounted] = useState(false);
-  const orders = useOrderStore((s) => s.orders);
+  const localOrders = useOrderStore((s) => s.orders);
+  const user = useAuthStore((s) => s.user);
+
+  const [dbOrders, setDbOrders] = useState<AdminOrder[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (!isMounted) return;
+
+    if (!user) {
+      setIsLoading(false);
+      return;
+    }
+
+    setIsLoading(true);
+    // Subscribe to Firestore orders for the current user
+    const unsubscribe = ordersService.subscribeByUserId(user.uid, (ordersData) => {
+      setDbOrders(ordersData);
+      setIsLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [user, isMounted]);
+
+  // Merge/determine which orders to display. If authenticated, use Firestore orders mapped to customer shape.
+  // Otherwise, use local Zustand storage orders
+  const displayOrders = user
+    ? dbOrders.map((dbOrder): Order => ({
+        id: dbOrder.id,
+        items: dbOrder.items.map((item) => ({
+          product: {
+            id: item.productId,
+            name: item.productName,
+            price: item.price,
+            image: item.imageUrl || '',
+            description: '',
+            category: 'coffee',
+            available: true,
+            featured: false,
+            stampReward: 1
+          },
+          quantity: item.quantity,
+        })),
+        subtotal: dbOrder.subtotal,
+        deliveryFee: dbOrder.deliveryCharge,
+        total: dbOrder.totalAmount,
+        address: {
+          fullName: dbOrder.customerName,
+          phone: dbOrder.customerPhone,
+          fullAddress: dbOrder.customerAddress,
+          city: 'Kanpur',
+        },
+        location: dbOrder.location || null,
+        status: mapAdminStatusToCustomerStatus(dbOrder.status) as any,
+        date: dbOrder.createdAt,
+        paymentMethod: 'Cash on Delivery',
+        estimatedTime: '25–35 minutes',
+      }))
+    : localOrders;
+
+  const orders = displayOrders;
 
   if (!isMounted) {
     return (
@@ -109,7 +173,12 @@ export default function DashboardPage() {
                 Recent Orders <span className="text-[#B8956A] text-sm">({orders.length})</span>
               </h2>
 
-              {orders.length === 0 ? (
+              {isLoading ? (
+                <div className="flex flex-col items-center justify-center py-20 border border-[#B8956A]/10 bg-[#1a1410]">
+                  <div className="w-8 h-8 border-2 border-t-[#B8956A] border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin mb-4" style={{ borderColor: 'rgba(184,149,106,0.2)', borderTopColor: '#B8956A' }}></div>
+                  <p className="text-xs tracking-wider uppercase text-[#EDE3D0]/40 font-medium" style={{ fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif' }}>Loading order history…</p>
+                </div>
+              ) : orders.length === 0 ? (
                 <div className="bg-[#1a1410] border border-[#B8956A]/15 p-12 text-center flex flex-col items-center">
                   <Package className="w-16 h-16 text-[#B8956A]/20 mb-6" />
                   <h3 className="text-[#EDE3D0] text-xl font-serif mb-4">No orders yet</h3>

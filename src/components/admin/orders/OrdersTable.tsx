@@ -1,13 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Search, Filter } from 'lucide-react';
 import StatusBadge from './StatusBadge';
 import OrderDetailDrawer from './OrderDetailDrawer';
+import { ordersService } from '@/services/orders.service';
 import type { AdminOrder, AdminOrderStatus } from '@/types/admin.types';
 
 interface OrdersTableProps {
-  initialOrders: AdminOrder[];
+  initialOrders?: AdminOrder[];
 }
 
 type FilterStatus = 'all' | AdminOrderStatus;
@@ -53,10 +54,21 @@ function formatItems(items: AdminOrder['items']) {
 }
 
 export default function OrdersTable({ initialOrders }: OrdersTableProps) {
-  const [orders, setOrders] = useState<AdminOrder[]>(initialOrders);
+  const [orders, setOrders] = useState<AdminOrder[]>(initialOrders || []);
+  const [isLoading, setIsLoading] = useState(!initialOrders);
+  const [isUpdating, setIsUpdating] = useState(false);
   const [filterStatus, setFilterStatus] = useState<FilterStatus>('all');
   const [search, setSearch] = useState('');
   const [selectedOrder, setSelectedOrder] = useState<AdminOrder | null>(null);
+
+  useEffect(() => {
+    // Subscribe to all orders from Firestore in real-time
+    const unsubscribe = ordersService.subscribeAll((ordersData) => {
+      setOrders(ordersData);
+      setIsLoading(false);
+    });
+    return () => unsubscribe();
+  }, []);
 
   const filtered = orders.filter((o) => {
     const matchStatus = filterStatus === 'all' || o.status === filterStatus;
@@ -69,13 +81,23 @@ export default function OrdersTable({ initialOrders }: OrdersTableProps) {
     return matchStatus && matchSearch;
   });
 
-  const handleStatusChange = (orderId: string, status: AdminOrderStatus) => {
-    setOrders((prev) =>
-      prev.map((o) => (o.id === orderId ? { ...o, status } : o))
-    );
-    // Update selected order if it's open
-    if (selectedOrder?.id === orderId) {
-      setSelectedOrder((prev) => (prev ? { ...prev, status } : prev));
+  const handleStatusChange = async (orderId: string, status: AdminOrderStatus) => {
+    try {
+      setIsUpdating(true);
+      // Optimistic local state update
+      setOrders((prev) =>
+        prev.map((o) => (o.id === orderId ? { ...o, status } : o))
+      );
+      if (selectedOrder?.id === orderId) {
+        setSelectedOrder((prev) => (prev ? { ...prev, status } : prev));
+      }
+
+      await ordersService.updateStatus(orderId, status);
+    } catch (e) {
+      console.error("Failed to update status in Firestore:", e);
+      alert("Failed to update status. Please try again.");
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -161,7 +183,12 @@ export default function OrdersTable({ initialOrders }: OrdersTableProps) {
         </div>
 
         {/* Rows */}
-        {filtered.length === 0 ? (
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center py-20">
+            <div className="w-8 h-8 border-2 border-t-[#B8956A] border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin mb-4" style={{ borderColor: 'rgba(184,149,106,0.2)', borderTopColor: '#B8956A' }}></div>
+            <p className="text-xs tracking-wider uppercase text-[#EDE3D0]/40 font-medium" style={{ fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif' }}>Loading orders…</p>
+          </div>
+        ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20">
             <p
               className="text-sm"
@@ -294,6 +321,15 @@ export default function OrdersTable({ initialOrders }: OrdersTableProps) {
           onClose={() => setSelectedOrder(null)}
           onStatusChange={handleStatusChange}
         />
+      )}
+
+      {isUpdating && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/65 backdrop-blur-xs">
+          <div className="flex flex-col items-center gap-3 p-6 rounded-2xl border" style={{ background: '#1a1410', borderColor: 'rgba(184,149,106,0.2)' }}>
+            <div className="w-8 h-8 border-2 border-t-brand-tertiary border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin" style={{ borderColor: 'rgba(184,149,106,0.2)', borderTopColor: '#B8956A' }}></div>
+            <p className="text-xs tracking-wider uppercase text-[#EDE3D0]/60 font-medium" style={{ fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif' }}>Updating database…</p>
+          </div>
+        </div>
       )}
     </>
   );

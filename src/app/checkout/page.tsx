@@ -8,6 +8,8 @@ import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import { useCartStore, DELIVERY_FEE } from '@/store/cart.store';
 import { useOrderStore, OrderLocation } from '@/store/order.store';
+import { useAuthStore } from '@/store/auth.store';
+import { ordersService } from '@/services/orders.service';
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
@@ -15,6 +17,7 @@ export default function CheckoutPage() {
   const router = useRouter();
   const { items, getSubtotal, clearCart } = useCartStore();
   const placeOrder = useOrderStore((s) => s.placeOrder);
+  const user = useAuthStore((s) => s.user);
 
   const [isMounted, setIsMounted] = useState(false);
 
@@ -103,21 +106,52 @@ export default function CheckoutPage() {
     
     setIsSubmitting(true);
     
-    // Simulate network request for premium feel
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    try {
+      // Simulate network request for premium feel
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
-    const orderId = placeOrder({
-      items,
-      subtotal,
-      deliveryFee: DELIVERY_FEE,
-      total,
-      address: formData,
-      location: locationState.coords,
-      estimatedTime: '25–35 minutes',
-    });
+      const fullAddressString = `${formData.fullAddress}${formData.landmark ? `, Near ${formData.landmark}` : ''}, ${formData.city}${formData.pincode ? ` - ${formData.pincode}` : ''}`;
 
-    clearCart();
-    router.push(`/order-success?id=${orderId}`);
+      // 1. Create order in Firestore
+      const orderId = await ordersService.create({
+        customerName: formData.fullName,
+        customerPhone: formData.phone,
+        customerAddress: fullAddressString,
+        items: items.map(item => ({
+          productId: item.product.id,
+          productName: item.product.name,
+          quantity: item.quantity,
+          price: item.product.price,
+          imageUrl: item.product.image || ''
+        })),
+        subtotal,
+        deliveryCharge: DELIVERY_FEE,
+        totalAmount: total,
+        paymentMethod: 'cash_on_delivery',
+        status: 'pending',
+        notes: formData.landmark || '',
+        userId: user?.uid || null,
+        location: locationState.coords
+      });
+
+      // 2. Sync order locally with Zustand using the generated ID
+      placeOrder({
+        items,
+        subtotal,
+        deliveryFee: DELIVERY_FEE,
+        total,
+        address: formData,
+        location: locationState.coords,
+        estimatedTime: '25–35 minutes',
+      }, orderId);
+
+      clearCart();
+      router.push(`/order-success?id=${orderId}`);
+    } catch (error) {
+      console.error("Failed to place order:", error);
+      alert("Failed to place order. Please try again.");
+      setIsSubmitting(false);
+    }
   };
 
   if (!isMounted || items.length === 0) {
