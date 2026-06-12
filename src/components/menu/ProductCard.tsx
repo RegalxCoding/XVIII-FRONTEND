@@ -36,10 +36,10 @@ export default function ProductCard({ product, index, onAdd }: ProductCardProps)
       className="group flex flex-col bg-[#1a1410] border border-[#B8956A]/12 hover:border-[#B8956A]/35 transition-all duration-500"
     >
       {/* ── Image container ── */}
-      {/* Fixed 4:5 ratio + object-fit: cover ensures layout never breaks */}
+      {/* Fixed 1:1 ratio + object-fit: cover ensures layout never breaks */}
       <div
         className="relative overflow-hidden flex-shrink-0"
-        style={{ aspectRatio: '4 / 5' }}
+        style={{ aspectRatio: '1 / 1' }}
       >
         <Image
           src={product.image}

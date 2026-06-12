@@ -103,10 +103,9 @@ export default function MenuGrid() {
               <div
                 key={i}
                 className="flex flex-col bg-[#1a1410]/50 border border-[#B8956A]/10 animate-pulse overflow-hidden"
-                style={{ height: '480px' }}
               >
                 {/* Image skeleton */}
-                <div className="w-full bg-[#15110d]/40 flex-shrink-0" style={{ aspectRatio: '4/5' }} />
+                <div className="w-full bg-[#15110d]/40 flex-shrink-0" style={{ aspectRatio: '1/1' }} />
                 {/* Content skeleton */}
                 <div className="flex flex-col flex-1 p-6 lg:p-7 gap-4">
                   <div className="flex justify-between items-center">
