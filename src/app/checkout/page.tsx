@@ -101,6 +101,14 @@ export default function CheckoutPage() {
     );
   };
 
+  const handleSimulateLocation = () => {
+    setLocationState({
+      coords: { lat: 26.4499, lng: 80.3319 }, // Kanpur coordinates
+      isLoading: false,
+      error: null,
+    });
+  };
+
   const handlePlaceOrder = async () => {
     if (!isFormValid || isSubmitting) return;
     
@@ -358,6 +366,16 @@ export default function CheckoutPage() {
                       <><MapPin className="w-4 h-4" /> {locationState.coords ? 'Re-detect Location' : 'Detect My Current Location'}</>
                     )}
                   </button>
+
+                  {process.env.NODE_ENV === 'development' && (
+                    <button
+                      type="button"
+                      onClick={handleSimulateLocation}
+                      className="mt-4 flex items-center justify-center gap-3 w-full md:w-auto bg-green-500/10 border border-green-500/30 text-green-500 px-6 py-4 hover:bg-green-500/20 transition-all text-xs tracking-[0.15em] uppercase font-bold"
+                    >
+                      <MapPin className="w-4 h-4" /> Simulate Location (Dev)
+                    </button>
+                  )}
 
                   {locationState.error && (
                     <p className="text-red-400/80 text-sm">{locationState.error}</p>
