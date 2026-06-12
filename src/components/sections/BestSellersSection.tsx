@@ -113,7 +113,7 @@ export default function BestSellersSection() {
                 style={{ minHeight: '600px' }}
               >
                 {/* Image placeholder */}
-                <div className="relative aspect-[4/5] bg-[#15110D]/5 flex-shrink-0" />
+                <div className="relative aspect-square bg-[#15110D]/5 flex-shrink-0" />
                 {/* Content placeholder */}
                 <div className="p-8 lg:p-10 xl:p-12 flex flex-col flex-1 gap-4">
                   <div className="flex justify-between items-center">
@@ -140,7 +140,7 @@ export default function BestSellersSection() {
                 className="group border border-[#15110D]/10 flex flex-col"
               >
                 {/* Image */}
-                <div className="relative aspect-[4/5] overflow-hidden bg-[#15110D]/5 flex-shrink-0">
+                <div className="relative aspect-square overflow-hidden bg-[#15110D]/5 flex-shrink-0">
                   <Image
                     src={product.image}
                     alt={product.name}

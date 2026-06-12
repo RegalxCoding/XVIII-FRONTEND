@@ -44,15 +44,15 @@ export default function Navbar() {
           fixed top-0 left-0 right-0 z-50
           transition-all duration-500
           ${isScrolled
-            ? 'bg-[#15110D]/95 backdrop-blur-sm border-b border-[#B8956A]/20 py-3'
-            : 'bg-transparent py-6'
+            ? 'bg-[#15110D] lg:bg-[#15110D]/95 lg:backdrop-blur-sm border-b border-[#B8956A]/20 py-2 lg:py-3'
+            : 'bg-transparent py-4 lg:py-6'
           }
         `}
       >
         <div className="container-brand flex items-center justify-between">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-3 group" aria-label="The XVIII Brew Co. - Home">
-            <div className="w-14 h-14 relative">
+            <div className="w-10 h-10 lg:w-14 lg:h-14 relative">
               <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
                 <circle cx="50" cy="50" r="48" fill="#15110D" stroke="#B8956A" strokeWidth="2"/>
                 <text x="50" y="44" textAnchor="middle" fill="#EDE3D0" fontSize="18" fontFamily="Georgia, serif" fontWeight="700" letterSpacing="2">THE</text>
@@ -211,16 +211,8 @@ export default function Navbar() {
             transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
             className="fixed inset-0 z-40 bg-[#15110D] flex flex-col"
           >
-            {/* Close button row */}
-            <div className="flex justify-end p-6 pt-8">
-              <button
-                onClick={() => setIsMobileOpen(false)}
-                className="text-[#EDE3D0] p-2"
-                aria-label="Close menu"
-              >
-                <X size={24} />
-              </button>
-            </div>
+            {/* Spacing for sticky header */}
+            <div className="h-24"></div>
 
             {/* Mobile nav links */}
             <div className="flex-1 flex flex-col justify-center px-8 gap-8">

@@ -35,10 +35,10 @@ export default function CartItemRow({ item, index }: CartItemRowProps) {
       "
     >
       {/* ── Product Image ── */}
-      {/* Fixed container — object-fit: cover, 4:5 ratio, never breaks */}
+      {/* Fixed container — object-fit: cover, 1:1 ratio, never breaks */}
       <div
         className="relative overflow-hidden flex-shrink-0 bg-[#1a1410]"
-        style={{ width: '100px', aspectRatio: '4 / 5' }}
+        style={{ width: '100px', aspectRatio: '1 / 1' }}
       >
         <Image
           src={product.image}

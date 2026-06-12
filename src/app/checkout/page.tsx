@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MapPin, Navigation, Loader2, CheckCircle2, ArrowRight, ShieldCheck, CreditCard } from 'lucide-react';
+import { MapPin, Navigation, Loader2, CheckCircle2, ArrowRight, ShieldCheck, CreditCard, X, AlertCircle } from 'lucide-react';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import { useCartStore, DELIVERY_FEE } from '@/store/cart.store';
@@ -44,6 +44,9 @@ export default function CheckoutPage() {
 
   // Submission State
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Modal State
+  const [showLocationAlert, setShowLocationAlert] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
@@ -79,15 +82,42 @@ export default function CheckoutPage() {
     }
 
     navigator.geolocation.getCurrentPosition(
-      (position) => {
+      async (position) => {
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+
         setLocationState({
-          coords: {
-            lat: position.coords.latitude,
-            lng: position.coords.longitude,
-          },
+          coords: { lat, lng },
           isLoading: false,
           error: null,
         });
+
+        try {
+          // Reverse geocode to get the address
+          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
+          const data = await res.json();
+          if (data && data.display_name) {
+            const isKanpur = data.display_name.toLowerCase().includes('kanpur');
+            
+            if (!isKanpur) {
+              setShowLocationAlert(true);
+              setLocationState({
+                coords: null,
+                isLoading: false,
+                error: 'Delivery unavailable outside Kanpur.',
+              });
+              return;
+            }
+
+            setFormData(prev => ({
+              ...prev,
+              fullAddress: data.display_name,
+              pincode: data.address?.postcode || prev.pincode,
+            }));
+          }
+        } catch (err) {
+          console.error("Failed to reverse geocode location", err);
+        }
       },
       (error) => {
         setLocationState({
@@ -101,12 +131,30 @@ export default function CheckoutPage() {
     );
   };
 
-  const handleSimulateLocation = () => {
+  const handleSimulateLocation = async () => {
+    const lat = 26.4499;
+    const lng = 80.3319;
+    
     setLocationState({
-      coords: { lat: 26.4499, lng: 80.3319 }, // Kanpur coordinates
+      coords: { lat, lng }, // Kanpur coordinates
       isLoading: false,
       error: null,
     });
+
+    try {
+      // Reverse geocode to get the address
+      const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
+      const data = await res.json();
+      if (data && data.display_name) {
+        setFormData(prev => ({
+          ...prev,
+          fullAddress: data.display_name,
+          pincode: data.address?.postcode || prev.pincode,
+        }));
+      }
+    } catch (err) {
+      console.error("Failed to reverse geocode location", err);
+    }
   };
 
   const handlePlaceOrder = async () => {
@@ -545,6 +593,52 @@ export default function CheckoutPage() {
       </section>
 
       <Footer />
+
+      {/* ── Location Alert Modal ── */}
+      <AnimatePresence>
+        {showLocationAlert && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              transition={{ duration: 0.3, ease }}
+              className="relative w-full max-w-md bg-[#1a1410] border border-[#B8956A]/20 shadow-2xl p-8"
+            >
+              <button
+                onClick={() => setShowLocationAlert(false)}
+                className="absolute top-4 right-4 text-[#EDE3D0]/40 hover:text-[#B8956A] transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              <div className="flex flex-col items-center text-center mt-2">
+                <div className="w-16 h-16 rounded-full bg-[#B8956A]/10 flex items-center justify-center mb-6">
+                  <AlertCircle className="w-8 h-8 text-[#B8956A]" />
+                </div>
+                
+                <h3 
+                  className="text-[#EDE3D0] text-2xl mb-3"
+                  style={{ fontFamily: 'Georgia, serif' }}
+                >
+                  Outside Delivery Zone
+                </h3>
+                
+                <p className="text-[#EDE3D0]/60 text-sm leading-relaxed mb-8">
+                  We're sorry, but we currently only deliver within <strong className="text-[#B8956A] font-medium">Kanpur</strong>. We're working hard to expand our services to more areas soon!
+                </p>
+
+                <button
+                  onClick={() => setShowLocationAlert(false)}
+                  className="w-full bg-[#B8956A] text-[#15110D] py-4 text-xs tracking-[0.2em] uppercase font-bold hover:bg-[#EDE3D0] transition-colors duration-300"
+                >
+                  Got It
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </main>
   );
 }
