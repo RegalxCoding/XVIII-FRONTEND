@@ -1,16 +1,14 @@
 'use client';
 
 import { useRef } from 'react';
-import Image from 'next/image';
 import Link from 'next/link';
 import { motion, useScroll, useTransform } from 'framer-motion';
-import { ArrowRight } from 'lucide-react';
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
 function fadeUpProps(delay: number) {
   return {
-    initial: { opacity: 0, y: 50 },
+    initial: { opacity: 0, y: 30 },
     animate: { opacity: 1, y: 0 },
     transition: { duration: 0.9, ease, delay },
   };
@@ -22,220 +20,165 @@ export default function HeroSection() {
     target: containerRef,
     offset: ['start start', 'end start'],
   });
-  const imageY = useTransform(scrollYProgress, [0, 1], ['0%', '15%']);
+  const imageY = useTransform(scrollYProgress, [0, 1], ['0%', '18%']);
+  const imageScale = useTransform(scrollYProgress, [0, 1], [1, 1.06]);
 
   return (
     <section
       id="hero"
       ref={containerRef}
-      className="relative min-h-screen bg-[#15110D] overflow-hidden"
+      className="relative min-h-screen bg-[#15110D] overflow-hidden flex flex-col justify-between pt-32 pb-20 lg:pt-36 lg:pb-24 px-6 lg:px-16"
     >
-      {/* Horizontal rule — editorial accent */}
-      <div className="absolute top-0 left-0 right-0 h-px bg-[#B8956A]/20 z-10" />
+      {/* ─── Grid Lines & Crosshairs ─── */}
+      <div className="absolute inset-0 pointer-events-none z-0">
+        <div className="absolute left-[25%] top-0 bottom-0 w-px bg-[#EDE3D0]/[0.05]" />
+        <div className="absolute left-[50%] top-0 bottom-0 w-px bg-[#EDE3D0]/[0.03]" />
+        <div className="absolute left-[75%] top-0 bottom-0 w-px bg-[#EDE3D0]/[0.05]" />
+        <div className="absolute top-[33%] left-0 right-0 h-px bg-[#EDE3D0]/[0.03]" />
+        <div className="absolute top-[66%] left-0 right-0 h-px bg-[#EDE3D0]/[0.03]" />
 
-      <div className="container-brand min-h-screen grid grid-cols-1 lg:grid-cols-2">
+        <div className="absolute left-[25%] top-[33%] -translate-x-1/2 -translate-y-1/2 text-[#EDE3D0]/20 text-xs font-light select-none">+</div>
+        <div className="absolute left-[75%] top-[33%] -translate-x-1/2 -translate-y-1/2 text-[#EDE3D0]/20 text-xs font-light select-none">+</div>
+        <div className="absolute left-[50%] top-[15%] -translate-x-1/2 -translate-y-1/2 text-[#EDE3D0]/20 text-xs font-light select-none">+</div>
+        <div className="absolute left-[25%] top-[66%] -translate-x-1/2 -translate-y-1/2 text-[#EDE3D0]/20 text-xs font-light select-none">+</div>
+        <div className="absolute left-[75%] top-[66%] -translate-x-1/2 -translate-y-1/2 text-[#EDE3D0]/20 text-xs font-light select-none">+</div>
+        <div className="absolute left-[90%] top-[50%] -translate-x-1/2 -translate-y-1/2 text-[#EDE3D0]/20 text-xs font-light select-none">+</div>
+      </div>
 
-        {/* ─── Left: Typography Column ─── */}
-        <div className="flex flex-col justify-center pt-32 pb-20 lg:pt-36 lg:pb-20 lg:pr-16 order-2 lg:order-1">
-
-          {/* Eyebrow */}
-          <motion.div
-            {...fadeUpProps(0.2)}
-            className="flex items-center gap-4 mb-10"
+      {/* ─── LAYER 1 (z-10): Headline — sits BEHIND the product image ─── */}
+      <div className="relative z-10 w-full max-w-6xl mt-8">
+        <motion.div {...fadeUpProps(0.2)} className="flex items-center gap-4 mb-5">
+          <div className="w-8 h-px bg-[#B8956A]" />
+          <span
+            className="text-[#B8956A] text-[10px] tracking-[0.4em] uppercase"
+            style={{ fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif' }}
           >
-            <div className="w-10 h-px bg-[#B8956A]" />
-            <span
-              className="text-[#B8956A] text-[10px] tracking-[0.4em] uppercase"
-              style={{ fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif' }}
-            >
-              Something Has Been Steeping
-            </span>
-          </motion.div>
+            Something Has Been Steeping
+          </span>
+        </motion.div>
 
-          {/* Main headline */}
-          <div className="overflow-hidden mb-6">
-            <motion.h1
-              {...fadeUpProps(0.35)}
-              className="text-[#EDE3D0] leading-[0.95] tracking-tight"
-              style={{
-                fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif',
-                fontSize: 'clamp(3.2rem, 7vw, 7rem)',
-                fontWeight: 700,
-              }}
-            >
-              Crafted
-              <br />
-              <span className="text-[#B8956A]" style={{ fontFamily: 'Georgia, serif' }}>
-                Coffee.
-              </span>
-            </motion.h1>
-          </div>
+        <motion.h1
+          {...fadeUpProps(0.35)}
+          className="text-[#EDE3D0] leading-[0.92] tracking-tight"
+          style={{
+            fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif',
+            fontSize: 'clamp(3rem, 10vw, 9rem)',
+            fontWeight: 700,
+          }}
+        >
+          Crafted Coffee.<br />
+          Extraordinary<br className="hidden lg:block" />{' '}
+          Desserts.
+        </motion.h1>
+      </div>
 
-          <div className="overflow-hidden mb-12">
-            <motion.h1
-              {...fadeUpProps(0.5)}
-              className="text-[#EDE3D0] leading-[0.95] tracking-tight"
-              style={{
-                fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif',
-                fontSize: 'clamp(3.2rem, 7vw, 7rem)',
-                fontWeight: 700,
-              }}
-            >
-              Extraordinary
-              <br />
-              Desserts.
-            </motion.h1>
-          </div>
+      {/* ─── LAYER 2 (z-20): Product image ─── */}
+      {/* Desktop: overlaps headline from the right for depth effect */}
+      {/* Mobile: positioned below headline, smaller, partially overlapping bottom text */}
+      <motion.div
+        style={{ y: imageY, scale: imageScale }}
+        className="
+          absolute pointer-events-none z-20
+          top-[58%] left-[50%] -translate-x-1/2 -translate-y-1/2
+          w-[65vw] h-[45vh]
+          lg:top-[50%] lg:left-[62%] lg:w-[42vw] lg:h-[85vh]
+        "
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/images/hero-coffee-cutout.png"
+          alt="Premium espresso crafted with intention at The XVIII Brew Co."
+          className="absolute inset-0 w-full h-full object-contain"
+          style={{
+            filter: 'drop-shadow(0 0 60px rgba(184, 149, 106, 0.12)) drop-shadow(0 20px 40px rgba(0,0,0,0.5))',
+          }}
+        />
+      </motion.div>
 
-          {/* Description */}
+      {/* Warm ambient glow behind the cup */}
+      <div
+        className="absolute top-[55%] left-[50%] lg:top-[48%] lg:left-[62%] -translate-x-1/2 -translate-y-1/2 w-[40vw] h-[40vw] rounded-full pointer-events-none z-[5]"
+        style={{
+          background: 'radial-gradient(circle, rgba(184, 149, 106, 0.07) 0%, transparent 60%)',
+        }}
+      />
+
+      {/* ─── LAYER 3 (z-30): Bottom content — sits IN FRONT of the image ─── */}
+      <div className="relative z-30 w-full flex flex-col lg:flex-row justify-between items-start lg:items-end gap-8 lg:gap-12 mt-auto">
+
+        {/* Bottom Left */}
+        <div className="max-w-sm relative">
+          <div className="absolute -top-16 lg:-top-20 left-4 w-px h-12 lg:h-16 bg-[#EDE3D0]/15 hidden lg:block" />
+          <div className="absolute -top-16 lg:-top-20 left-4 w-1.5 h-1.5 rounded-full bg-[#B8956A]/40 -translate-x-[2px] hidden lg:block" />
+
           <motion.p
             {...fadeUpProps(0.65)}
-            className="text-[#EDE3D0]/55 max-w-sm mb-12 leading-relaxed"
+            className="text-[#EDE3D0]/55 mb-6 lg:mb-8 leading-relaxed"
             style={{
               fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif',
-              fontSize: 'clamp(0.875rem, 1.5vw, 1rem)',
+              fontSize: 'clamp(0.8rem, 1.1vw, 0.95rem)',
             }}
           >
             Precision-brewed, single-origin coffee. Pastries crafted with obsessive intention.
             Every element considered. Every visit a statement.
           </motion.p>
 
-          {/* CTAs */}
-          <motion.div
-            {...fadeUpProps(0.8)}
-            className="flex flex-col sm:flex-row items-start gap-4"
-          >
+          <motion.div {...fadeUpProps(0.8)} className="flex gap-4">
             <Link
               href="/menu"
-              id="hero-order-cta"
-              className="
-                inline-flex items-center gap-3
-                bg-[#B8956A] text-[#15110D]
-                px-8 py-4 text-xs tracking-[0.25em] uppercase font-bold
-                hover:bg-[#EDE3D0] transition-all duration-300 group
-              "
+              className="inline-block bg-[#B8956A] text-[#15110D] px-7 py-3.5 text-xs tracking-[0.15em] uppercase font-bold hover:bg-[#EDE3D0] transition-colors duration-300"
               style={{ fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif' }}
             >
               Explore Menu
-              <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform duration-300" />
             </Link>
             <Link
               href="/about"
-              id="hero-about-link"
-              className="
-                inline-flex items-center gap-3
-                border border-[#EDE3D0]/20 text-[#EDE3D0]/70
-                px-8 py-4 text-xs tracking-[0.25em] uppercase font-medium
-                hover:border-[#B8956A]/60 hover:text-[#EDE3D0] transition-all duration-300
-              "
+              className="inline-block border border-[#EDE3D0]/15 text-[#EDE3D0]/60 px-7 py-3.5 text-xs tracking-[0.15em] uppercase font-medium hover:border-[#B8956A]/50 hover:text-[#EDE3D0] transition-all duration-300"
               style={{ fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif' }}
             >
               Our Story
             </Link>
           </motion.div>
+        </div>
 
-          {/* Stats bar */}
-          <motion.div
-            {...fadeUpProps(0.95)}
-            className="mt-20 pt-8 border-t border-[#B8956A]/15 grid grid-cols-3 gap-8"
-          >
+        {/* Bottom Right — Stats */}
+        <motion.div
+          {...fadeUpProps(0.95)}
+          className="max-w-xs relative"
+        >
+          <div className="absolute -top-16 lg:-top-20 right-8 w-px h-12 lg:h-16 bg-[#EDE3D0]/15 hidden lg:block" />
+          <div className="absolute -top-16 lg:-top-20 right-8 w-1.5 h-1.5 rounded-full bg-[#B8956A]/40 -translate-x-[2px] hidden lg:block" />
+
+          <div className="grid grid-cols-3 gap-6 lg:gap-10">
             {[
               { num: '18+', label: 'Origin Regions' },
               { num: '100%', label: 'Small Batch' },
               { num: '∞', label: 'Standards' },
             ].map((stat) => (
-              <div key={stat.label}>
+              <div key={stat.label} className="flex flex-col lg:items-end">
                 <p
-                  className="text-[#B8956A] font-bold mb-1"
+                  className="text-[#EDE3D0] font-bold mb-1"
                   style={{
-                    fontFamily: 'Georgia, serif',
-                    fontSize: 'clamp(1.5rem, 3vw, 2rem)',
+                    fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif',
+                    fontSize: 'clamp(1.25rem, 2vw, 1.75rem)',
                   }}
                 >
                   {stat.num}
                 </p>
                 <p
-                  className="text-[#EDE3D0]/40 text-[10px] tracking-[0.25em] uppercase"
+                  className="text-[#EDE3D0]/35 text-[9px] tracking-[0.2em] uppercase"
                   style={{ fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif' }}
                 >
                   {stat.label}
                 </p>
               </div>
             ))}
-          </motion.div>
-        </div>
-
-        {/* ─── Right: Image Column ─── */}
-        <div className="relative order-1 lg:order-2 h-[70vw] sm:h-[60vw] lg:h-auto">
-          {/* Main hero image — parallax */}
-          <motion.div
-            style={{ y: imageY }}
-            className="absolute inset-0 lg:top-0 lg:bottom-[-10%]"
-          >
-            <Image
-              src="/images/hero-coffee.png"
-              alt="Premium espresso crafted with intention at The XVIII Brew Co."
-              fill
-              priority
-              sizes="(max-width: 1024px) 100vw, 50vw"
-              className="object-cover"
-            />
-            {/* Dark gradient overlay to blend image borders */}
-            <div className="absolute inset-0 bg-gradient-to-b from-[#15110D] via-transparent to-[#15110D] opacity-60 lg:opacity-0" />
-            <div className="absolute inset-0 bg-gradient-to-r from-[#15110D] via-[#15110D]/30 to-transparent opacity-90 lg:opacity-100" />
-          </motion.div>
-
-          {/* Floating dessert image card — desktop only, hidden on mobile to prevent overlap */}
-          <motion.div
-            initial={{ opacity: 0, y: 30, scale: 0.96 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            transition={{ delay: 1.1, duration: 0.8, ease: 'easeOut' }}
-            className="hidden lg:block absolute bottom-16 -left-12 w-52 z-20"
-          >
-            <div className="relative aspect-square overflow-hidden border border-[#B8956A]/25 bg-[#1e1812]">
-              <Image
-                src="/images/bestseller-cake.png"
-                alt="Artisan chocolate tart from The XVIII Brew Co."
-                fill
-                sizes="208px"
-                className="object-cover"
-              />
-            </div>
-            <div className="bg-[#15110D] border border-[#B8956A]/20 px-4 py-3">
-              <p
-                className="text-[#B8956A] text-[9px] tracking-[0.3em] uppercase mb-0.5"
-                style={{ fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif' }}
-              >
-                Signature
-              </p>
-              <p
-                className="text-[#EDE3D0] text-xs font-medium"
-                style={{ fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif' }}
-              >
-                XVIII Chocolate Tart
-              </p>
-            </div>
-          </motion.div>
-
-          {/* Vertical editorial text */}
-          <div className="absolute right-4 top-1/2 -translate-y-1/2 hidden lg:block">
-            <p
-              className="text-[#EDE3D0]/15 text-[10px] tracking-[0.5em] uppercase"
-              style={{
-                fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif',
-                writingMode: 'vertical-rl',
-                textOrientation: 'mixed',
-                transform: 'rotate(180deg)',
-              }}
-            >
-              The XVIII Brew Co. — Est. 2024
-            </p>
           </div>
-        </div>
+        </motion.div>
       </div>
 
       {/* Bottom marquee ticker */}
-      <div className="absolute bottom-0 left-0 right-0 border-t border-[#B8956A]/15 overflow-hidden bg-[#15110D]/80 py-3">
+      <div className="absolute bottom-0 left-0 right-0 border-t border-[#B8956A]/10 overflow-hidden bg-[#15110D]/80 py-3 z-30">
         <div className="marquee-track">
           {Array(8).fill(null).map((_, i) => (
             <span
@@ -243,18 +186,18 @@ export default function HeroSection() {
               className="inline-flex items-center gap-6 pr-12"
               style={{ fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif' }}
             >
-              <span className="text-[#EDE3D0]/25 text-[10px] tracking-[0.35em] uppercase whitespace-nowrap">
+              <span className="text-[#EDE3D0]/20 text-[10px] tracking-[0.35em] uppercase whitespace-nowrap">
                 Crafted Coffee
               </span>
-              <span className="text-[#B8956A] text-[8px]">✦</span>
-              <span className="text-[#EDE3D0]/25 text-[10px] tracking-[0.35em] uppercase whitespace-nowrap">
+              <span className="text-[#B8956A]/50 text-[8px]">✦</span>
+              <span className="text-[#EDE3D0]/20 text-[10px] tracking-[0.35em] uppercase whitespace-nowrap">
                 Extraordinary Desserts
               </span>
-              <span className="text-[#B8956A] text-[8px]">✦</span>
-              <span className="text-[#EDE3D0]/25 text-[10px] tracking-[0.35em] uppercase whitespace-nowrap">
+              <span className="text-[#B8956A]/50 text-[8px]">✦</span>
+              <span className="text-[#EDE3D0]/20 text-[10px] tracking-[0.35em] uppercase whitespace-nowrap">
                 Something Has Been Steeping
               </span>
-              <span className="text-[#B8956A] text-[8px]">✦</span>
+              <span className="text-[#B8956A]/50 text-[8px]">✦</span>
             </span>
           ))}
         </div>
