@@ -3,10 +3,12 @@
 import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ProductCard from '@/components/menu/ProductCard';
+import DessertSlotModal from '@/components/menu/DessertSlotModal';
 import { type MenuCategory, type MenuProduct } from '@/data/menuData';
 import { useCartStore } from '@/store/cart.store';
 import { fireCartToast } from '@/components/ui/CartToast';
 import { productsService, mapProductToMenuProduct } from '@/services/products.service';
+import type { DessertSlot } from '@/utils/timeSlots';
 
 // ─────────────────────────────────────────
 // Filter Tab definition
@@ -30,7 +32,12 @@ export default function MenuGrid() {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
+  // ── Dessert slot modal state ──
+  const [pendingDessert, setPendingDessert] = useState<MenuProduct | null>(null);
+  const [showSlotModal, setShowSlotModal] = useState(false);
+
   const addToCart = useCartStore((s) => s.addToCart);
+  const setDessertSlot = useCartStore((s) => s.setDessertSlot);
 
   // Fetch products from Firebase on mount
   useEffect(() => {
@@ -74,10 +81,35 @@ export default function MenuGrid() {
     return allProducts.filter(p => p.category === activeFilter);
   }, [allProducts, activeFilter]);
 
-  // Add to cart handler — connected to Zustand + toast
+  // ── Add to cart handler ──
+  // Coffee: immediate add (unchanged flow)
+  // Dessert: open slot modal first — slot required before adding
   const handleAdd = (product: MenuProduct) => {
-    addToCart(product);
-    fireCartToast(product.name);
+    if (product.category === 'coffee') {
+      // ── Existing coffee flow — completely untouched ──
+      addToCart(product);
+      fireCartToast(product.name);
+    } else {
+      // ── Dessert: require slot selection first ──
+      setPendingDessert(product);
+      setShowSlotModal(true);
+    }
+  };
+
+  // Called by modal on confirm — saves slot + adds product
+  const handleSlotConfirm = (product: MenuProduct | null, slot: DessertSlot) => {
+    setDessertSlot(slot);
+    if (product) {
+      addToCart(product);
+      fireCartToast(product.name);
+    }
+    setShowSlotModal(false);
+    setPendingDessert(null);
+  };
+
+  const handleSlotClose = () => {
+    setShowSlotModal(false);
+    setPendingDessert(null);
   };
 
   if (isLoading) {
@@ -155,6 +187,7 @@ export default function MenuGrid() {
   }
 
   return (
+    <>
     <section id="menu-grid" className="py-20 lg:py-28">
       <div className="container-brand">
 
@@ -274,5 +307,16 @@ export default function MenuGrid() {
 
       </div>
     </section>
+
+    {/* ── Dessert Slot Modal ── */}
+    {showSlotModal && (
+      <DessertSlotModal
+        product={pendingDessert}
+        onConfirm={handleSlotConfirm}
+        onClose={handleSlotClose}
+      />
+    )}
+    </>
   );
 }
+

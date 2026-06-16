@@ -1,6 +1,6 @@
 # The XVIII Brew Co. — Project Documentation
 
-> **Last Updated:** 8 June 2026  
+> **Last Updated:** 16 June 2026  
 > **Stack:** Next.js 16 · TypeScript · Tailwind CSS v4 · Framer Motion · Firebase Auth  
 > **Author:** XVIII Brew Co. Development Team
 
@@ -70,7 +70,7 @@ The `src/app/` directory uses the Next.js 15 App Router. Every `page.tsx` is a s
 | `globals.css`           | —              | Global CSS. Brand design tokens, Tailwind v4 setup, `.container-brand` utility, scrollbar styling, marquee animation, and selection colours                          |
 | `page.tsx`              | `/`            | Landing page. Assembles all 8 section components: Navbar → Hero → Philosophy → BestSellers → Process → Rewards → MenuPreview → FinalCTA → Footer                    |
 | `menu/page.tsx`         | `/menu`        | Full menu catalogue page. Composes `MenuHero` + `MenuGrid`. Ready for Appwrite integration.                                                                         |
-| `cart/page.tsx`         | `/cart`        | Cart page. Two-column desktop layout: item list + sticky `OrderSummary`. Reads from Zustand cart store. Empty-state with Browse Menu CTA.                           |
+| `cart/page.tsx`         | `/cart`        | Cart page. Two-column desktop layout: item list + sticky `OrderSummary`. Reads from Zustand cart store. Empty-state with Browse Menu CTA. **Scheduling:** Shows dessert delivery slot banner with Edit Slot button; mixed-order coffee delivery mode picker; expired-slot expiry banner. |
 | `about/page.tsx`        | `/about`       | Brand story page (scaffold)                                                                                                                                         |
 | `contact/page.tsx`      | `/contact`     | Contact page (scaffold)                                                                                                                                             |
 | `rewards/page.tsx`      | `/rewards`     | Loyalty programme page (scaffold)                                                                                                                                   |
@@ -100,18 +100,19 @@ The `src/app/` directory uses the Next.js 15 App Router. Every `page.tsx` is a s
 
 #### Menu Components (`src/components/menu/`)
 
-| File              | Purpose                         | Key Features                                                                                                                                                                                                                       |
-| ----------------- | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `MenuHero.tsx`    | Hero section for `/menu` page   | Animated editorial hero. Ghost `XVIII` parallax typography. Stats row (items, categories). Uses same framer-motion `fadeUp` pattern as landing hero. Eyebrow label + large H1 headline.                                            |
-| `ProductCard.tsx` | Reusable individual product card | Fixed `1:1 (square)` aspect-ratio image container with `object-fit: cover` — images never stretch or overflow regardless of source dimensions. Category badge, featured dot, name + price row, description, minimal `+ Add` button. Accepts `onAdd` callback prop. |
-| `MenuGrid.tsx`    | Filterable product grid         | Client component. Owns `activeFilter` state. Tabs: All / Coffee / Desserts with live item counts. `AnimatePresence` fade transition between filter states. Calls `useCartStore.addToCart()` + `fireCartToast()` on add.             |
+| File                  | Purpose                          | Key Features                                                                                                                                                                                                                                                                                                                                       |
+| --------------------- | -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `MenuHero.tsx`        | Hero section for `/menu` page    | Animated editorial hero. Ghost `XVIII` parallax typography. Stats row (items, categories). Uses same framer-motion `fadeUp` pattern as landing hero. Eyebrow label + large H1 headline.                                            |
+| `ProductCard.tsx`     | Reusable individual product card | Fixed `1:1 (square)` aspect-ratio image container with `object-fit: cover` — images never stretch or overflow regardless of source dimensions. Category badge, featured dot, name + price row, description, minimal `+ Add` button. Accepts `onAdd` callback prop. |
+| `MenuGrid.tsx`        | Filterable product grid          | Client component. Owns `activeFilter` state. Tabs: All / Coffee / Desserts with live item counts. `AnimatePresence` fade transition between filter states. **Coffee:** calls `addToCart()` + `fireCartToast()` directly. **Dessert:** intercepts click → opens `DessertSlotModal` → slot saved → then adds to cart. Coffee flow completely unchanged. |
+| `DessertSlotModal.tsx`| Dessert delivery slot picker modal | Full-screen dark glassmorphism modal. **Date row:** Today / Tomorrow buttons (Today auto-disabled if no 6h-advance slots remain). **Time grid:** All business-hour slots; same-day slots that violate the 6h rule are greyed-out and un-clickable. **Confirmation summary** appears when both date and time are selected. Works in two modes: add-product mode (product passed) and edit-slot mode (product = null, just updates the existing slot). Calls `buildDessertSlot()` from `timeSlots.ts` to produce a `DessertSlot` object before calling `onConfirm`. |
 
 #### Cart Components (`src/components/cart/`)
 
 | File              | Purpose                          | Key Features                                                                                                                                                                                                                          |
 | ----------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `CartItemRow.tsx` | Single cart item row             | Fixed `1:1 (square)` image thumbnail (`object-fit: cover`). Product name, category label, description (line-clamped). Quantity stepper (`−` / count / `+`) wired to `updateQuantity`. `×` remove button wired to `removeFromCart`. Live line total. AnimatePresence exit animation. |
-| `OrderSummary.tsx`| Sticky order summary sidebar     | Sticky on desktop (`lg:sticky lg:top-32`). Shows Subtotal (with item count), Delivery Fee (₹40 flat), Total. Smart checkout button: routes to `/login` if unauthenticated, `/checkout` if logged in. Disabled + muted when cart empty. Reads `useAuthStore` for auth state. |
+| `OrderSummary.tsx`| Sticky order summary sidebar     | Sticky on desktop (`lg:sticky lg:top-32`). Shows Subtotal (with item count), Delivery Fee (₹40 flat), Total. **Checkout gate:** Button is disabled with an explanatory helper text if: (a) cart has a dessert but no valid slot is set, or (b) it is a mixed order but no coffee delivery mode is chosen. Shows a mini scheduling summary (date · time · coffee mode) when all scheduling info is complete. |
 
 #### UI Components (`src/components/ui/`)
 
@@ -153,11 +154,11 @@ All admin components live under `src/components/admin/`. They use the brand's da
 
 #### Orders (`src/components/admin/orders/`)
 
-| File                  | Purpose                   | Key Features                                                                                                                                                                                                              |
-| --------------------- | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `OrdersTable.tsx`     | Filterable orders table   | **Filter bar:** All / Pending / Confirmed / Preparing / Ready / Delivered / Cancelled. **Search:** by order ID, customer name, or phone. Clicking any row opens `OrderDetailDrawer`. Responsive — desktop shows all columns, mobile shows a compact card. |
-| `OrderDetailDrawer.tsx`| Slide-in order detail panel | Shows full order info: customer name, phone, address, all items with quantities and prices, subtotal, delivery charge, total. Has a **Change Status** dropdown so admin can update the order status. Updates propagate back to the table in real-time (local state only for now). |
-| `StatusBadge.tsx`     | Coloured status pill      | Renders a pill badge for any `AdminOrderStatus` value. Each status has a fixed colour: Pending=orange, Confirmed=blue, Preparing=purple, Ready=teal, Delivered=green, Cancelled=red. Accepts a `size` prop (`sm` or `md`). |
+| File                   | Purpose                    | Key Features                                                                                                                                                                                                              |
+| ---------------------- | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `OrdersTable.tsx`      | Filterable orders table    | **Status filter row:** All / Pending / Confirmed / Preparing / Ready / Delivered / Cancelled. **Scheduling filter row:** All Schedules / 📅 Today's Desserts / 📅 Tomorrow's Desserts / ☕ Immediate Coffee / 🍰 Coffee+Dessert. **Search:** by order ID, customer name, or phone. When a scheduling filter is active, results are sorted by `scheduledTimestamp` ascending (earliest slot first). Desktop Date column shows a secondary `📅 Tomorrow · 4:00 PM` line for scheduled orders. Mobile card shows an inline `📅` badge. Clicking any row opens `OrderDetailDrawer`. |
+| `OrderDetailDrawer.tsx`| Slide-in order detail panel | Shows full order info: customer name, phone, address, all items with quantities and prices, subtotal, delivery charge, total, Change Status dropdown. **New — Delivery Schedule section** (rendered only when `order.isScheduled` is true): shows Dessert Delivery date + time (formatted from `scheduledTimestamp` via `formatScheduledTime()`); 🟡 Scheduled badge; Coffee Fulfillment row with 🟢 Immediate or 🍰 Bundled pill. |
+| `StatusBadge.tsx`      | Coloured status pill       | Renders a pill badge for any `AdminOrderStatus` value. Each status has a fixed colour: Pending=orange, Confirmed=blue, Preparing=purple, Ready=teal, Delivered=green, Cancelled=red. Accepts a `size` prop (`sm` or `md`). |
 
 #### Products (`src/components/admin/products/`)
 
@@ -203,9 +204,10 @@ Located in `src/services/`.
 
 Located in `src/hooks/`.
 
-| File         | Purpose                                                                           | Returns                                         |
-| ------------ | --------------------------------------------------------------------------------- | ----------------------------------------------- |
-| `useAuth.ts` | React hook for current auth state. Calls `authService.getCurrentUser()` on mount. | `{ user, isLoading, isAuthenticated, refetch }` |
+| File                    | Purpose                                                                           | Returns                                         |
+| ----------------------- | --------------------------------------------------------------------------------- | ----------------------------------------------- |
+| `useAuth.ts`            | React hook for current auth state. Calls `authService.getCurrentUser()` on mount. | `{ user, isLoading, isAuthenticated, refetch }` |
+| `useSlotValidation.ts`  | Runs **once on mount** on Cart and Checkout pages. Checks whether the persisted `dessertSlot` is still valid (≥ 6h in future). If expired: clears the slot and `coffeeDeliveryMode` from the cart store. | `{ wasExpired: boolean }` — used by the page to conditionally render an expiry banner. |
 
 ---
 
@@ -216,13 +218,28 @@ Located in `src/store/`. Uses **Zustand** for global state.
 | File             | Purpose                                                                                            | State Shape                                                                                                                         |
 | ---------------- | -------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
 | `auth.store.ts`  | Global authentication state. Used across the app to read/write user session.                       | `{ user, isLoading, isAuthenticated, setUser(), initialize(), logout() }`                                                           |
-| `cart.store.ts`  | Cart state — persisted to `localStorage` via Zustand `persist` middleware (key: `xviii-cart`).     | `{ items: CartItem[], addToCart(), removeFromCart(), updateQuantity(), clearCart(), getTotalItems(), getSubtotal() }` |
+| `cart.store.ts`  | Cart state — persisted to `localStorage` via Zustand `persist` middleware (key: `xviii-cart`).     | `{ items, dessertSlot, coffeeDeliveryMode, addToCart(), removeFromCart(), updateQuantity(), clearCart(), setDessertSlot(), setCoffeeDeliveryMode(), getTotalItems(), getSubtotal(), hasDesserts(), hasCoffee(), isMixedOrder(), isSlotValid() }` |
 | `order.store.ts` | Order history state — persisted to `localStorage` (key: `xviii-orders`). Supports pre-generated ID sync. | `{ orders: Order[], placeOrder(orderData, pregeneratedId?), updateOrderStatus(), getOrderById() }`                 |
 
 **`CartItem` shape:**
 ```typescript
 { product: MenuProduct, quantity: number }
 ```
+
+**`DessertSlot` shape** (from `src/utils/timeSlots.ts`):
+```typescript
+{
+  scheduledTimestamp: number;  // Unix ms — CANONICAL value; derive display from this
+  isoDate: string;             // "YYYY-MM-DD" in IST — display only
+  time: string;                // "4:00 PM" — display only
+}
+```
+
+**Scheduling state in `cart.store.ts`:**
+- `dessertSlot: DessertSlot | null` — one slot for the entire order's dessert portion (not per-item)
+- `coffeeDeliveryMode: 'immediate' | 'withDessert' | null` — only meaningful in mixed orders
+- `clearCart()` resets both alongside `items`
+- `removeFromCart()` auto-clears `dessertSlot` when last dessert is removed; auto-clears `coffeeDeliveryMode` when last coffee is removed
 
 **`DELIVERY_FEE`** constant exported from `cart.store.ts` — flat ₹40. Update here when pricing changes.
 
@@ -258,9 +275,24 @@ interface AdminOrder {
   subtotal, deliveryCharge, totalAmount,
   paymentMethod: 'cash_on_delivery' | 'online' | 'card',
   status: 'pending' | 'confirmed' | 'preparing' | 'ready' | 'delivered' | 'cancelled',
-  notes?, createdAt, userId?, location?
+  notes?, createdAt, userId?, location?,
+
+  // ── Auto-derived at order creation time (never set manually) ──
+  containsCoffee?: boolean;   // items.some(i => i.category === 'coffee')
+  containsDessert?: boolean;  // items.some(i => i.category === 'dessert')
+
+  // ── Scheduling (only populated when containsDessert is true) ──
+  isScheduled?: boolean;
+  scheduledTimestamp?: number;  // Unix ms — CANONICAL. Derive date/time display from this.
+  deliveryDate?: string;        // "YYYY-MM-DD" IST — derived from scheduledTimestamp
+  deliveryTime?: string;        // "4:00 PM" — derived from scheduledTimestamp
+
+  // ── Mixed-order fulfillment (only when containsCoffee && containsDessert) ──
+  coffeeDeliveryMode?: 'immediate' | 'withDessert';
 }
 ```
+
+> **Consistency guarantee:** `deliveryDate` and `deliveryTime` are always derived from `scheduledTimestamp` via `buildDessertSlot()`. They are stored for display convenience; `scheduledTimestamp` is always the authoritative value.
 
 ---
 
@@ -268,22 +300,26 @@ interface AdminOrder {
 
 Located in `src/constants/index.ts`. Single source of truth for all static brand content. **Change content here, not in components.**
 
-| Export                    | Type   | Contains                                                                                                                 |
-| ------------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------ |
-| `BRAND`                   | object | Brand name, tagline, headline, email, phone, address (`XVIII Brew Co., Kanpur, India`), Instagram URL, WhatsApp URL      |
-| `NAV_LINKS`               | array  | All navigation link labels and `href` values                                                                             |
-| `STAMPS_PER_CARD`         | number | Total stamps per loyalty card (10)                                                                                       |
-| `STAMPS_FOR_FREE_DESSERT` | number | Stamps needed for free dessert reward (8)                                                                                |
-| `STAMPS_FOR_DISCOUNT`     | number | Stamps needed for discount reward (5)                                                                                    |
-| `PROCESS_STEPS`           | array  | All **5** process steps: `01` Bean Selection · `02` The Roast · `03` The Brew · `04` The Aftertaste · `05` Dessert Craft |
-| `BEST_SELLERS`            | array  | 3 best seller products with id, name, category, description, price, image path                                           |
-| `MENU_CATEGORIES`         | array  | 3 menu categories with id, label, description, image path, and href                                                      |
+| Export                      | Type   | Contains                                                                                                                 |
+| --------------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------ |
+| `BRAND`                     | object | Brand name, tagline, headline, email, phone, address (`XVIII Brew Co., Kanpur, India`), Instagram URL, WhatsApp URL      |
+| `NAV_LINKS`                 | array  | All navigation link labels and `href` values                                                                             |
+| `STAMPS_PER_CARD`           | number | Total stamps per loyalty card (10)                                                                                       |
+| `STAMPS_FOR_FREE_DESSERT`   | number | Stamps needed for free dessert reward (8)                                                                                |
+| `STAMPS_FOR_DISCOUNT`       | number | Stamps needed for discount reward (5)                                                                                    |
+| `PROCESS_STEPS`             | array  | All **5** process steps: `01` Bean Selection · `02` The Roast · `03` The Brew · `04` The Aftertaste · `05` Dessert Craft |
+| `BEST_SELLERS`              | array  | 3 best seller products with id, name, category, description, price, image path                                           |
+| `MENU_CATEGORIES`           | array  | 3 menu categories with id, label, description, image path, and href                                                      |
+| `BUSINESS_HOURS`            | object | `{ open: 8, close: 22 }` — dessert delivery window. **Update here when hours change.**                                  |
+| `DELIVERY_SLOT_INTERVAL_HOURS` | number | Hours between each slot option (default: `1`). Change to `0.5` for 30-min slots.                                   |
+| `DESSERT_MIN_ADVANCE_HOURS` | number | Minimum advance notice required for same-day dessert orders (default: `6`)                                               |
+| `BUSINESS_TIMEZONE`         | string | IANA timezone for all scheduling math (`'Asia/Kolkata'`). Never relies on browser defaults.                              |
 
 ---
 
 ### 3.10 Utils
 
-Located in `src/utils/helpers.ts`. Pure utility functions.
+#### `src/utils/helpers.ts` — General utilities
 
 | Function        | Signature                                          | Purpose                                                           |
 | --------------- | -------------------------------------------------- | ----------------------------------------------------------------- |
@@ -292,6 +328,26 @@ Located in `src/utils/helpers.ts`. Pure utility functions.
 | `truncate()`    | `(text, maxLength) → string`                       | Truncates text with `...` at `maxLength` characters               |
 | `getFileUrl()`  | `(fileId, bucketId, endpoint, projectId) → string` | Builds Appwrite Storage file preview URL                          |
 | `wait()`        | `(ms: number) → Promise`                           | Async delay for animation sequencing                              |
+
+#### `src/utils/timeSlots.ts` — Dessert scheduling utilities (IST-aware)
+
+All scheduling math lives here. **Never hardcodes** hours or timezone — reads from `constants/index.ts`. Functions accept config as parameters so future migration to Firestore settings only requires changing the import site.
+
+| Export                   | Signature / Returns                      | Purpose                                                                                                        |
+| ------------------------ | ---------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `DessertSlot` (type)     | `{ scheduledTimestamp, isoDate, time }`  | The canonical slot shape used in the cart store and Firestore orders                                           |
+| `nowInIST()`             | `→ Date`                                 | Returns the current moment (no timezone conversion needed — used as a base for IST component extraction)       |
+| `getTodayISO()`          | `→ string`                               | Today's date as `"YYYY-MM-DD"` in IST                                                                         |
+| `getTomorrowISO()`       | `→ string`                               | Tomorrow's date as `"YYYY-MM-DD"` in IST                                                                      |
+| `getAllSlots()`           | `→ string[]`                             | All business-hour slot labels from open to close at `DELIVERY_SLOT_INTERVAL_HOURS` spacing                     |
+| `getAvailableSlotsForDate(isoDate)` | `→ SlotOption[]`            | Returns slots with `{ label, isDisabled, disabledReason? }`. Today: enforces 6h advance rule. Tomorrow: all enabled. |
+| `getAvailableDates()`    | `→ DateAvailability`                     | Returns `{ todayISO, tomorrowISO, todayDisabled, todayDisabledReason }`. `todayDisabled` = true if zero valid slots remain today. |
+| `buildDessertSlot(isoDate, timeLabel)` | `→ DessertSlot`            | **Computes `scheduledTimestamp` first**, then derives `isoDate` and `time` from it — making inconsistency structurally impossible. |
+| `isSlotStillValid(slot)` | `→ boolean`                              | Returns `true` if slot is ≥ `DESSERT_MIN_ADVANCE_HOURS` in the future from now. Used for expiry detection.     |
+| `formatScheduledTime(ts)`| `→ string`                               | Full datetime string in IST: `"17 June 2026, 4:00 PM"`                                                        |
+| `formatScheduledDate(ts)`| `→ string`                               | Short date: `"17 June"`                                                                                        |
+| `formatScheduledTimeOnly(ts)` | `→ string`                          | Time only: `"4:00 PM"`                                                                                         |
+| `getRelativeDateLabel(isoDate)` | `→ string`                        | Returns `"Today"` or `"Tomorrow"` for known dates; falls back to formatted date string                          |
 
 ---
 
@@ -433,15 +489,15 @@ cp .env.example .env.local
 | --------------- | --------------------------- | ------------- | ---------------- | ------------------------------------------------------------------------ |
 | `/`             | `app/page.tsx`              | Static        | ✅ Complete      | Full landing page with all 8 sections                                    |
 | `/menu`         | `app/menu/page.tsx`         | Static        | ✅ Complete      | Hero + filterable product grid, integrated with Firebase Firestore.      |
-| `/cart`         | `app/cart/page.tsx`         | Client        | ✅ Complete      | Zustand cart, quantity controls, order summary, empty state              |
+| `/cart`         | `app/cart/page.tsx`         | Client        | ✅ Complete      | Zustand cart, quantity controls, scheduling panels, mixed-order coffee mode picker, checkout gate |
 | `/product/[id]` | `app/product/[id]/page.tsx` | Dynamic (SSR) | 🔧 Scaffold      | —                                                                        |
 | `/about`        | `app/about/page.tsx`        | Static        | 🔧 Scaffold      | —                                                                        |
 | `/contact`      | `app/contact/page.tsx`      | Static        | 🔧 Scaffold      | —                                                                        |
 | `/rewards`      | `app/rewards/page.tsx`      | Static        | 🔧 Scaffold      | —                                                                        |
 | `/login`        | `app/login/page.tsx`        | Static        | 🔧 Scaffold      | Cart checkout redirects here when unauthenticated                        |
-| `/checkout`     | `app/checkout/page.tsx`     | Client        | ✅ Complete      | Delivery form, live location detection, reverse geocoding (OpenStreetMap), custom Kanpur-only validation modal, summary, places order in Firestore. |
-| `/order-success`| `app/order-success/page.tsx`| Client        | ✅ Complete      | Success confirmation, displays order ID and details from Firestore.       |
-| `/dashboard`    | `app/dashboard/page.tsx`    | Client        | ✅ Complete      | User dashboard displaying real-time order history and status from Firestore. |
+| `/checkout`     | `app/checkout/page.tsx`     | Client        | ✅ Complete      | Delivery form, live location, scheduling summary panel, pre-submit confirmation modal, places order in Firestore with all scheduling fields. |
+| `/order-success`| `app/order-success/page.tsx`| Client        | ✅ Complete      | Success confirmation, displays order ID + estimated time (day-aware: "Dessert by Tomorrow, 4:00 PM"). |
+| `/dashboard`    | `app/dashboard/page.tsx`    | Client        | ✅ Complete      | Real-time order history from Firestore. Estimated Arrival reads `deliveryDate`+`deliveryTime` for scheduled orders. |
 
 > **✅ Complete** = fully functional, integrated with Firebase Firestore.  
 > **🔧 Scaffold** = page structure in place, data/forms not yet connected.  
@@ -484,13 +540,94 @@ All section components are **zero-prop** — they import data from `src/constant
 ### OrderSummary
 
 - No props
-- Reads `useCartStore` for items + subtotal
+- Reads `useCartStore` for items, subtotal, `dessertSlot`, `coffeeDeliveryMode`, and derived selectors
 - Reads `useAuthStore` for authentication state
-- Routing: `/login` (unauthenticated) · `/checkout` (authenticated)
+- **Checkout gate:** Disabled if `hasDesserts() && !isSlotValid()` or `isMixedOrder() && !coffeeDeliveryMode`
+- Shows mini scheduling summary when slot is confirmed
+
+### DessertSlotModal
+
+| Prop        | Type                                           | Required | Description                                         |
+| ----------- | ---------------------------------------------- | -------- | --------------------------------------------------- |
+| `product`   | `MenuProduct \| null`                           | ✅       | The dessert being added. `null` = edit-slot-only mode |
+| `onConfirm` | `(product, slot: DessertSlot) => void`          | ✅       | Called when user confirms; receives the built slot  |
+| `onClose`   | `() => void`                                   | ✅       | Called when modal is dismissed without confirming   |
 
 ---
 
-## 9. Scripts
+## 11. Dessert Scheduling System
+
+This section documents the full design of the dessert time-slot scheduling feature. Read this before modifying any scheduling logic.
+
+### Overview
+
+- **Coffee** orders are always fulfilled immediately. No scheduling changes to coffee flow.
+- **Dessert** orders require a delivery date + time slot (up to 2 days out).
+- **Mixed** orders (coffee + dessert) additionally require the user to choose whether coffee is delivered immediately or bundled with the dessert.
+
+### Canonical Data Rule
+
+> **`scheduledTimestamp` (Unix ms) is always the canonical value.** `deliveryDate` (`YYYY-MM-DD`) and `deliveryTime` (`4:00 PM`) are always derived from it using `buildDessertSlot()` and stored alongside for display convenience only. Never compute a timestamp from a display string.
+
+### Slot Selection Rules
+
+| Rule | Detail |
+|------|--------|
+| **Min advance** | Slot must be ≥ `DESSERT_MIN_ADVANCE_HOURS` (6 h) from now in IST |
+| **Window** | Only slots within `BUSINESS_HOURS.open–close` (8 AM–10 PM) are offered |
+| **Today** | Only slots satisfying the 6 h rule are enabled; others shown greyed with reason |
+| **Tomorrow** | All slots enabled |
+| **Today disabled** | If no valid today slots remain, the Today button itself is disabled |
+| **Slot interval** | Controlled by `DELIVERY_SLOT_INTERVAL_HOURS` constant (default: 1 h) |
+| **Timezone** | All math uses `BUSINESS_TIMEZONE = 'Asia/Kolkata'` — never relies on browser locale |
+
+### Expiry Detection
+
+When the user navigates to `/cart` or `/checkout`, `useSlotValidation` runs once on mount:
+- Reads `dessertSlot.scheduledTimestamp` from the persisted cart store.
+- If `scheduledTimestamp < Date.now() + MIN_ADVANCE_MS` → slot is expired.
+- Expired slot and `coffeeDeliveryMode` are cleared from the store.
+- The page receives `{ wasExpired: true }` and shows an orange expiry banner.
+
+### Firestore Order Fields
+
+```typescript
+// Only written when containsDessert === true
+{
+  containsCoffee: boolean,         // auto-derived from items
+  containsDessert: boolean,        // auto-derived from items
+  isScheduled: true,
+  scheduledTimestamp: 1750152600000,  // canonical Unix ms (IST)
+  deliveryDate: "2026-06-17",         // derived display — do NOT parse back to timestamp
+  deliveryTime: "4:00 PM",            // derived display
+  coffeeDeliveryMode: "immediate" | "withDessert" | undefined
+}
+```
+
+### Display Strings
+
+| Context | Format | Example |
+|---|---|---|
+| Cart slot banner | `getRelativeDateLabel() + " · " + time` | `Tomorrow · 4:00 PM` |
+| Estimated Arrival (dashboard) | `"Dessert by " + relativeLabel + ", " + time` | `Dessert by Tomorrow, 4:00 PM` |
+| Admin drawer | `formatScheduledTime(ts)` | `17 June 2026, 4:00 PM` |
+| Admin orders table secondary line | `relativeLabel + " · " + time` | `Tomorrow · 4:00 PM` |
+
+### To Change Business Hours / Slot Config
+
+> **Only edit `src/constants/index.ts`.** All scheduling logic reads from there — no other files need changes.
+
+```typescript
+// src/constants/index.ts
+export const BUSINESS_HOURS = { open: 8, close: 22 };        // 8 AM – 10 PM
+export const DELIVERY_SLOT_INTERVAL_HOURS = 1;                // 1-hour slots
+export const DESSERT_MIN_ADVANCE_HOURS = 6;                   // 6h same-day advance
+export const BUSINESS_TIMEZONE = 'Asia/Kolkata';              // IST
+```
+
+---
+
+## 12. Scripts
 
 ```bash
 # Run in: XVIII-PROJECT/frontend/
@@ -508,13 +645,33 @@ npx tsx scripts/seed-products.ts # Seed initial mock products to Firestore
 
 ---
 
-## 10. Changelog
+## 13. Changelog
 
 A running log of all significant frontend changes. Most recent first.
 
 ---
 
-### 11 June 2026
+### 16 June 2026
+
+#### Dessert Time Slot & Coffee Delivery Enhancement
+
+**New files:**
+- [`src/utils/timeSlots.ts`](file:///c:/Users/LOQ/Desktop/XVIII-PROJECT/frontend/src/utils/timeSlots.ts) — IST-aware scheduling utilities: slot generation, `buildDessertSlot()`, `isSlotStillValid()`, `getRelativeDateLabel()`, formatters. Single source of scheduling math.
+- [`src/hooks/useSlotValidation.ts`](file:///c:/Users/LOQ/Desktop/XVIII-PROJECT/frontend/src/hooks/useSlotValidation.ts) — Mount hook that detects and clears expired slots on Cart/Checkout pages. Returns `{ wasExpired }`.
+- [`src/components/menu/DessertSlotModal.tsx`](file:///c:/Users/LOQ/Desktop/XVIII-PROJECT/frontend/src/components/menu/DessertSlotModal.tsx) — Full-screen date/time picker modal. Enforces 6h advance rule inline. Works in add-product and edit-slot modes.
+
+**Modified files:**
+- [`src/constants/index.ts`](file:///c:/Users/LOQ/Desktop/XVIII-PROJECT/frontend/src/constants/index.ts) — Added `BUSINESS_HOURS`, `DELIVERY_SLOT_INTERVAL_HOURS`, `DESSERT_MIN_ADVANCE_HOURS`, `BUSINESS_TIMEZONE`.
+- [`src/types/admin.types.ts`](file:///c:/Users/LOQ/Desktop/XVIII-PROJECT/frontend/src/types/admin.types.ts) — Extended `AdminOrder` with `containsCoffee`, `containsDessert`, `isScheduled`, `scheduledTimestamp`, `deliveryDate`, `deliveryTime`, `coffeeDeliveryMode`.
+- [`src/store/cart.store.ts`](file:///c:/Users/LOQ/Desktop/XVIII-PROJECT/frontend/src/store/cart.store.ts) — Added `dessertSlot`, `coffeeDeliveryMode`, `setDessertSlot()`, `setCoffeeDeliveryMode()`, `hasDesserts()`, `hasCoffee()`, `isMixedOrder()`, `isSlotValid()`. `clearCart()` and `removeFromCart()` auto-clear scheduling fields when appropriate.
+- [`src/components/menu/MenuGrid.tsx`](file:///c:/Users/LOQ/Desktop/XVIII-PROJECT/frontend/src/components/menu/MenuGrid.tsx) — Dessert add-button now opens `DessertSlotModal` before adding to cart. Coffee add-button unchanged.
+- [`src/app/cart/page.tsx`](file:///c:/Users/LOQ/Desktop/XVIII-PROJECT/frontend/src/app/cart/page.tsx) — Added: expiry banner, dessert slot panel with Edit Slot button, mixed-order coffee delivery mode picker (Immediate / With Dessert).
+- [`src/components/cart/OrderSummary.tsx`](file:///c:/Users/LOQ/Desktop/XVIII-PROJECT/frontend/src/components/cart/OrderSummary.tsx) — Checkout gate: button disabled until slot + coffee mode are resolved. Mini scheduling summary in sidebar.
+- [`src/app/checkout/page.tsx`](file:///c:/Users/LOQ/Desktop/XVIII-PROJECT/frontend/src/app/checkout/page.tsx) — Added Delivery Schedule panel, pre-submit confirmation modal showing full order + schedule. Firestore payload now includes all scheduling fields with `scheduledTimestamp` as canonical.
+- [`src/app/order-success/page.tsx`](file:///c:/Users/LOQ/Desktop/XVIII-PROJECT/frontend/src/app/order-success/page.tsx) — `estimatedTime` derived from `deliveryDate`+`deliveryTime` when `isScheduled`: `"Dessert by Tomorrow, 4:00 PM"`.
+- [`src/app/dashboard/page.tsx`](file:///c:/Users/LOQ/Desktop/XVIII-PROJECT/frontend/src/app/dashboard/page.tsx) — `estimatedTime` in order cards now derived from Firestore scheduling fields instead of hardcoded `'25–35 minutes'`.
+- [`src/components/admin/orders/OrderDetailDrawer.tsx`](file:///c:/Users/LOQ/Desktop/XVIII-PROJECT/frontend/src/components/admin/orders/OrderDetailDrawer.tsx) — New **Delivery Schedule** section (shown only when `isScheduled`): dessert date/time, 🟡 Scheduled badge, Coffee Fulfillment row with Immediate/Bundled pill.
+- [`src/components/admin/orders/OrdersTable.tsx`](file:///c:/Users/LOQ/Desktop/XVIII-PROJECT/frontend/src/components/admin/orders/OrdersTable.tsx) — New scheduling filter row (Today's Desserts / Tomorrow's Desserts / Immediate Coffee / Coffee+Dessert). Scheduling-filtered results sorted by `scheduledTimestamp` ascending. Row indicators show slot info inline.
 
 #### Order Flow Backend — Firebase Firestore Orders Integration
 - Created [orders.service.ts](file:///c:/Users/ROHIT/Desktop/XVII/XVIII-FRONTEND/src/services/orders.service.ts) handling Firestore CRUD operations, user filtering, and real-time dashboard listeners.

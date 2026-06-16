@@ -9,6 +9,7 @@ import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import { useOrderStore, Order } from '@/store/order.store';
 import { ordersService, mapAdminStatusToCustomerStatus } from '@/services/orders.service';
+import { getRelativeDateLabel } from '@/utils/timeSlots';
 
 function OrderSuccessContent() {
   const searchParams = useSearchParams();
@@ -60,7 +61,9 @@ function OrderSuccessContent() {
                 status: mapAdminStatusToCustomerStatus(dbOrder.status) as any,
                 date: dbOrder.createdAt,
                 paymentMethod: 'Cash on Delivery',
-                estimatedTime: '25–35 minutes'
+                estimatedTime: dbOrder.isScheduled && dbOrder.deliveryDate && dbOrder.deliveryTime
+                  ? `Dessert by ${getRelativeDateLabel(dbOrder.deliveryDate)}, ${dbOrder.deliveryTime}`
+                  : '25–35 minutes'
               });
             } else {
               router.push('/dashboard');

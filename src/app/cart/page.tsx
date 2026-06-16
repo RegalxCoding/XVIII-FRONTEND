@@ -1,25 +1,48 @@
 'use client';
 
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
-import { ArrowRight, ShoppingBag } from 'lucide-react';
+import { ArrowRight, ShoppingBag, Calendar, Clock, AlertCircle, Coffee, Cake } from 'lucide-react';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import CartItemRow from '@/components/cart/CartItemRow';
 import OrderSummary from '@/components/cart/OrderSummary';
+import DessertSlotModal from '@/components/menu/DessertSlotModal';
 import { useCartStore } from '@/store/cart.store';
+import { useSlotValidation } from '@/hooks/useSlotValidation';
+import { getRelativeDateLabel } from '@/utils/timeSlots';
+import type { DessertSlot } from '@/utils/timeSlots';
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
 // ─────────────────────────────────────────
 // CartPage — full client component
-// (Zustand requires client context)
 // ─────────────────────────────────────────
 
 export default function CartPage() {
   const items = useCartStore((s) => s.items);
   const clearCart = useCartStore((s) => s.clearCart);
+  const dessertSlot = useCartStore((s) => s.dessertSlot);
+  const setDessertSlot = useCartStore((s) => s.setDessertSlot);
+  const coffeeDeliveryMode = useCartStore((s) => s.coffeeDeliveryMode);
+  const setCoffeeDeliveryMode = useCartStore((s) => s.setCoffeeDeliveryMode);
+  const hasDesserts = useCartStore((s) => s.hasDesserts);
+  const hasCoffee = useCartStore((s) => s.hasCoffee);
+  const isMixedOrder = useCartStore((s) => s.isMixedOrder);
+
   const isEmpty = items.length === 0;
+
+  // Detect expired slot on mount — clears it and returns wasExpired flag
+  const { wasExpired } = useSlotValidation();
+
+  // Edit slot modal state
+  const [showEditModal, setShowEditModal] = useState(false);
+
+  const handleSlotEdit = (_product: import('@/data/menuData').MenuProduct | null, slot: DessertSlot) => {
+    setDessertSlot(slot);
+    setShowEditModal(false);
+  };
 
   return (
     <main className="bg-[#15110D] min-h-screen">
@@ -99,6 +122,51 @@ export default function CartPage() {
       {/* ── Cart Body ── */}
       <section id="cart-body" className="py-16 lg:py-24">
         <div className="container-brand">
+
+          {/* ── Expired Slot Banner ── */}
+          <AnimatePresence>
+            {wasExpired && (
+              <motion.div
+                initial={{ opacity: 0, y: -12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -12 }}
+                transition={{ duration: 0.4, ease }}
+                className="flex items-start gap-4 p-5 mb-8"
+                style={{
+                  background: 'rgba(251,146,60,0.08)',
+                  border: '1px solid rgba(251,146,60,0.25)',
+                }}
+              >
+                <AlertCircle size={18} className="flex-shrink-0 mt-0.5" style={{ color: '#fb923c' }} />
+                <div className="flex-1">
+                  <p
+                    className="text-sm font-medium mb-1"
+                    style={{ color: '#EDE3D0', fontFamily: 'Georgia, serif' }}
+                  >
+                    Your delivery slot has expired.
+                  </p>
+                  <p
+                    className="text-xs"
+                    style={{ color: 'rgba(237,227,208,0.5)', fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif' }}
+                  >
+                    Please select a new delivery time for your desserts before proceeding.
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowEditModal(true)}
+                  className="flex-shrink-0 px-4 py-2 text-xs tracking-[0.15em] uppercase font-bold transition-colors"
+                  style={{
+                    background: 'rgba(251,146,60,0.15)',
+                    border: '1px solid rgba(251,146,60,0.3)',
+                    color: '#fb923c',
+                    fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif',
+                  }}
+                >
+                  Select New Slot
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           <AnimatePresence mode="wait">
 
@@ -202,6 +270,197 @@ export default function CartPage() {
                     ))}
                   </AnimatePresence>
 
+                  {/* ── Dessert Delivery Slot Banner ── */}
+                  {hasDesserts() && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.4, ease }}
+                      className="mt-8 p-5"
+                      style={{
+                        background: dessertSlot
+                          ? 'rgba(184,149,106,0.08)'
+                          : 'rgba(255,255,255,0.02)',
+                        border: dessertSlot
+                          ? '1px solid rgba(184,149,106,0.25)'
+                          : '1px solid rgba(251,146,60,0.2)',
+                      }}
+                    >
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex items-start gap-3">
+                          <Calendar
+                            size={16}
+                            className="flex-shrink-0 mt-0.5"
+                            style={{ color: dessertSlot ? '#B8956A' : '#fb923c' }}
+                          />
+                          <div>
+                            <p
+                              className="text-[10px] tracking-[0.2em] uppercase mb-1"
+                              style={{
+                                color: 'rgba(237,227,208,0.35)',
+                                fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif',
+                              }}
+                            >
+                              Dessert Delivery
+                            </p>
+                            {dessertSlot ? (
+                              <p
+                                className="text-sm font-medium"
+                                style={{ color: '#EDE3D0', fontFamily: 'Georgia, serif' }}
+                              >
+                                {getRelativeDateLabel(dessertSlot.isoDate)}
+                                <span className="text-[#B8956A] mx-2">·</span>
+                                {dessertSlot.time}
+                              </p>
+                            ) : (
+                              <p
+                                className="text-sm"
+                                style={{ color: 'rgba(251,146,60,0.8)', fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif' }}
+                              >
+                                No delivery slot selected
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        <button
+                          id="edit-slot-btn"
+                          onClick={() => setShowEditModal(true)}
+                          className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 text-[10px] tracking-[0.15em] uppercase transition-all duration-200"
+                          style={{
+                            border: '1px solid rgba(184,149,106,0.25)',
+                            color: '#B8956A',
+                            fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif',
+                          }}
+                          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(184,149,106,0.1)'; }}
+                          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
+                        >
+                          <Clock size={11} />
+                          {dessertSlot ? 'Edit Slot' : 'Select Slot'}
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {/* ── Mixed Order: Coffee Delivery Mode ── */}
+                  {isMixedOrder() && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.4, ease, delay: 0.05 }}
+                      className="mt-4 p-5"
+                      style={{
+                        background: 'rgba(255,255,255,0.02)',
+                        border: '1px solid rgba(184,149,106,0.15)',
+                      }}
+                    >
+                      <div className="flex items-center gap-3 mb-4">
+                        <Coffee size={15} style={{ color: '#B8956A' }} />
+                        <p
+                          className="text-[10px] tracking-[0.2em] uppercase"
+                          style={{ color: 'rgba(237,227,208,0.4)', fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif' }}
+                        >
+                          When should we deliver your coffee?
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        {/* Option 1: Immediate */}
+                        <button
+                          id="coffee-mode-immediate"
+                          onClick={() => setCoffeeDeliveryMode('immediate')}
+                          className="w-full flex items-start gap-4 p-4 text-left transition-all duration-200"
+                          style={{
+                            background: coffeeDeliveryMode === 'immediate'
+                              ? 'rgba(184,149,106,0.12)'
+                              : 'rgba(255,255,255,0.02)',
+                            border: coffeeDeliveryMode === 'immediate'
+                              ? '1px solid rgba(184,149,106,0.4)'
+                              : '1px solid rgba(184,149,106,0.1)',
+                          }}
+                        >
+                          <div
+                            className="w-4 h-4 rounded-full flex-shrink-0 mt-0.5 flex items-center justify-center"
+                            style={{
+                              border: coffeeDeliveryMode === 'immediate'
+                                ? '2px solid #B8956A'
+                                : '2px solid rgba(184,149,106,0.3)',
+                              background: coffeeDeliveryMode === 'immediate' ? '#B8956A' : 'transparent',
+                            }}
+                          >
+                            {coffeeDeliveryMode === 'immediate' && (
+                              <div className="w-1.5 h-1.5 rounded-full bg-[#15110D]" />
+                            )}
+                          </div>
+                          <div>
+                            <p
+                              className="text-sm font-medium mb-1"
+                              style={{ color: '#EDE3D0', fontFamily: 'Georgia, serif' }}
+                            >
+                              ☕ Deliver coffee immediately
+                            </p>
+                            <p
+                              className="text-xs"
+                              style={{ color: 'rgba(237,227,208,0.4)', fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif' }}
+                            >
+                              Coffee arrives as soon as it's ready. Dessert follows your scheduled slot.
+                            </p>
+                          </div>
+                        </button>
+
+                        {/* Option 2: With dessert */}
+                        <button
+                          id="coffee-mode-with-dessert"
+                          onClick={() => setCoffeeDeliveryMode('withDessert')}
+                          className="w-full flex items-start gap-4 p-4 text-left transition-all duration-200"
+                          style={{
+                            background: coffeeDeliveryMode === 'withDessert'
+                              ? 'rgba(184,149,106,0.12)'
+                              : 'rgba(255,255,255,0.02)',
+                            border: coffeeDeliveryMode === 'withDessert'
+                              ? '1px solid rgba(184,149,106,0.4)'
+                              : '1px solid rgba(184,149,106,0.1)',
+                          }}
+                        >
+                          <div
+                            className="w-4 h-4 rounded-full flex-shrink-0 mt-0.5 flex items-center justify-center"
+                            style={{
+                              border: coffeeDeliveryMode === 'withDessert'
+                                ? '2px solid #B8956A'
+                                : '2px solid rgba(184,149,106,0.3)',
+                              background: coffeeDeliveryMode === 'withDessert' ? '#B8956A' : 'transparent',
+                            }}
+                          >
+                            {coffeeDeliveryMode === 'withDessert' && (
+                              <div className="w-1.5 h-1.5 rounded-full bg-[#15110D]" />
+                            )}
+                          </div>
+                          <div>
+                            <p
+                              className="text-sm font-medium mb-1"
+                              style={{ color: '#EDE3D0', fontFamily: 'Georgia, serif' }}
+                            >
+                              🍰 Deliver with my dessert
+                              {dessertSlot && (
+                                <span
+                                  className="ml-2 text-xs font-normal"
+                                  style={{ color: '#B8956A' }}
+                                >
+                                  ({getRelativeDateLabel(dessertSlot.isoDate)} · {dessertSlot.time})
+                                </span>
+                              )}
+                            </p>
+                            <p
+                              className="text-xs"
+                              style={{ color: 'rgba(237,227,208,0.4)', fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif' }}
+                            >
+                              Everything arrives together at your scheduled dessert slot.
+                            </p>
+                          </div>
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
+
                   {/* Continue shopping */}
                   <div className="mt-10">
                     <Link
@@ -231,6 +490,15 @@ export default function CartPage() {
       </section>
 
       <Footer />
+
+      {/* ── Edit Slot Modal ── */}
+      {showEditModal && (
+        <DessertSlotModal
+          product={null}
+          onConfirm={handleSlotEdit}
+          onClose={() => setShowEditModal(false)}
+        />
+      )}
     </main>
   );
 }

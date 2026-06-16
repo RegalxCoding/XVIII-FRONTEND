@@ -49,6 +49,26 @@ export interface AdminOrder {
   createdAt: string;
   userId?: string | null;
   location?: { lat: number; lng: number } | null;
+
+  // ── Auto-derived from items[] at order creation — never set manually ──
+  containsCoffee?: boolean;
+  containsDessert?: boolean;
+
+  // ── Scheduling — only populated when containsDessert is true ──
+  isScheduled?: boolean;
+  /**
+   * Canonical scheduling value (Unix ms, IST).
+   * deliveryDate and deliveryTime are display projections of this — derive from it,
+   * never set independently.
+   */
+  scheduledTimestamp?: number;
+  /** ISO date "YYYY-MM-DD" (IST) — derived from scheduledTimestamp for display */
+  deliveryDate?: string;
+  /** Human-readable time "4:00 PM" — derived from scheduledTimestamp for display */
+  deliveryTime?: string;
+
+  // ── Mixed-order fulfillment — only present when containsCoffee && containsDessert ──
+  coffeeDeliveryMode?: 'immediate' | 'withDessert';
 }
 
 // ─────────────────────────────────────────
