@@ -3,23 +3,48 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MapPin, Navigation, Loader2, CheckCircle2, ArrowRight, ShieldCheck, CreditCard, X, AlertCircle } from 'lucide-react';
+import {
+  MapPin, Navigation, Loader2, CheckCircle2, ArrowRight,
+  ShieldCheck, CreditCard, X, AlertCircle, Calendar, Clock, Coffee,
+} from 'lucide-react';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import { useCartStore, DELIVERY_FEE } from '@/store/cart.store';
 import { useOrderStore, OrderLocation } from '@/store/order.store';
 import { useAuthStore } from '@/store/auth.store';
 import { ordersService } from '@/services/orders.service';
+import { useSlotValidation } from '@/hooks/useSlotValidation';
+import { getRelativeDateLabel, formatScheduledTime } from '@/utils/timeSlots';
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
 export default function CheckoutPage() {
   const router = useRouter();
   const { items, getSubtotal, clearCart } = useCartStore();
+  const dessertSlot = useCartStore(s => s.dessertSlot);
+  const coffeeDeliveryMode = useCartStore(s => s.coffeeDeliveryMode);
+  const hasDesserts = useCartStore(s => s.hasDesserts);
+  const hasCoffee = useCartStore(s => s.hasCoffee);
+  const isMixedOrder = useCartStore(s => s.isMixedOrder);
+  const isSlotValid = useCartStore(s => s.isSlotValid);
   const placeOrder = useOrderStore((s) => s.placeOrder);
   const user = useAuthStore((s) => s.user);
 
   const [isMounted, setIsMounted] = useState(false);
+
+  // Detect expired slot on mount — redirects back to cart if expired
+  const { wasExpired } = useSlotValidation();
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  // Redirect if slot expired — user must re-select in cart
+  useEffect(() => {
+    if (wasExpired) {
+      router.push('/cart?slotExpired=1');
+    }
+  }, [wasExpired, router]);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -27,7 +52,7 @@ export default function CheckoutPage() {
     phone: '',
     fullAddress: '',
     landmark: '',
-    city: 'Kanpur', // pre-filled
+    city: 'Kanpur',
     pincode: '',
   });
 
@@ -42,14 +67,12 @@ export default function CheckoutPage() {
     error: null,
   });
 
-  // Submission State
+  // UI State
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
-  // Modal State
   const [showLocationAlert, setShowLocationAlert] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   useEffect(() => {
-    setIsMounted(true);
     if (items.length === 0 && !isSubmitting) {
       router.push('/cart');
     }
@@ -62,11 +85,16 @@ export default function CheckoutPage() {
 
   // Validation
   const isPhoneValid = formData.phone.replace(/[^0-9]/g, '').length === 10;
-  const isFormValid = 
+  const hasValidSlot = !hasDesserts() || (dessertSlot !== null && isSlotValid());
+  const hasValidCoffeeMode = !isMixedOrder() || coffeeDeliveryMode !== null;
+
+  const isFormValid =
     formData.fullName.trim() !== '' &&
     isPhoneValid &&
     formData.fullAddress.trim() !== '' &&
-    locationState.coords !== null;
+    locationState.coords !== null &&
+    hasValidSlot &&
+    hasValidCoffeeMode;
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -75,7 +103,7 @@ export default function CheckoutPage() {
 
   const handleDetectLocation = () => {
     setLocationState({ coords: null, isLoading: true, error: null });
-    
+
     if (!navigator.geolocation) {
       setLocationState({ coords: null, isLoading: false, error: 'Geolocation is not supported by your browser' });
       return;
@@ -86,29 +114,18 @@ export default function CheckoutPage() {
         const lat = position.coords.latitude;
         const lng = position.coords.longitude;
 
-        setLocationState({
-          coords: { lat, lng },
-          isLoading: false,
-          error: null,
-        });
+        setLocationState({ coords: { lat, lng }, isLoading: false, error: null });
 
         try {
-          // Reverse geocode to get the address
           const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
           const data = await res.json();
           if (data && data.display_name) {
             const isKanpur = data.display_name.toLowerCase().includes('kanpur');
-            
             if (!isKanpur) {
               setShowLocationAlert(true);
-              setLocationState({
-                coords: null,
-                isLoading: false,
-                error: 'Delivery unavailable outside Kanpur.',
-              });
+              setLocationState({ coords: null, isLoading: false, error: 'Delivery unavailable outside Kanpur.' });
               return;
             }
-
             setFormData(prev => ({
               ...prev,
               fullAddress: data.display_name,
@@ -116,16 +133,12 @@ export default function CheckoutPage() {
             }));
           }
         } catch (err) {
-          console.error("Failed to reverse geocode location", err);
+          console.error('Failed to reverse geocode location', err);
         }
       },
       (error) => {
-        setLocationState({
-          coords: null,
-          isLoading: false,
-          error: 'Unable to retrieve your location. Please check your permissions.',
-        });
-        console.error("Error detecting location", error);
+        setLocationState({ coords: null, isLoading: false, error: 'Unable to retrieve your location. Please check your permissions.' });
+        console.error('Error detecting location', error);
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
@@ -134,15 +147,8 @@ export default function CheckoutPage() {
   const handleSimulateLocation = async () => {
     const lat = 26.4499;
     const lng = 80.3319;
-    
-    setLocationState({
-      coords: { lat, lng }, // Kanpur coordinates
-      isLoading: false,
-      error: null,
-    });
-
+    setLocationState({ coords: { lat, lng }, isLoading: false, error: null });
     try {
-      // Reverse geocode to get the address
       const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
       const data = await res.json();
       if (data && data.display_name) {
@@ -153,22 +159,38 @@ export default function CheckoutPage() {
         }));
       }
     } catch (err) {
-      console.error("Failed to reverse geocode location", err);
+      console.error('Failed to reverse geocode location', err);
     }
   };
 
+  // ── Confirm order — called after the pre-submit modal is confirmed ──
   const handlePlaceOrder = async () => {
     if (!isFormValid || isSubmitting) return;
-    
     setIsSubmitting(true);
-    
+    setShowConfirmModal(false);
+
     try {
-      // Simulate network request for premium feel
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
       const fullAddressString = `${formData.fullAddress}${formData.landmark ? `, Near ${formData.landmark}` : ''}, ${formData.city}${formData.pincode ? ` - ${formData.pincode}` : ''}`;
 
-      // 1. Create order in Firestore
+      // ── Auto-derive containsCoffee/containsDessert from items ──
+      const containsCoffee = items.some(i => i.product.category === 'coffee');
+      const containsDessert = items.some(i => i.product.category === 'dessert');
+
+      // ── Build scheduling fields only if dessert exists ──
+      // scheduledTimestamp is CANONICAL — deliveryDate and deliveryTime derived from it
+      const schedulingFields = containsDessert && dessertSlot ? {
+        isScheduled: true,
+        scheduledTimestamp: dessertSlot.scheduledTimestamp,   // canonical
+        deliveryDate: dessertSlot.isoDate,                    // derived display
+        deliveryTime: dessertSlot.time,                       // derived display
+        // null → undefined: AdminOrder.coffeeDeliveryMode is 'immediate' | 'withDessert' | undefined
+        coffeeDeliveryMode: (containsCoffee && containsDessert && coffeeDeliveryMode != null)
+          ? coffeeDeliveryMode
+          : undefined,
+      } : {};
+
       const orderId = await ordersService.create({
         customerName: formData.fullName,
         customerPhone: formData.phone,
@@ -178,7 +200,7 @@ export default function CheckoutPage() {
           productName: item.product.name,
           quantity: item.quantity,
           price: item.product.price,
-          imageUrl: item.product.image || ''
+          imageUrl: item.product.image || '',
         })),
         subtotal,
         deliveryCharge: DELIVERY_FEE,
@@ -187,10 +209,15 @@ export default function CheckoutPage() {
         status: 'pending',
         notes: formData.landmark || '',
         userId: user?.uid || null,
-        location: locationState.coords
+        location: locationState.coords,
+        // auto-derived composition fields
+        containsCoffee,
+        containsDessert,
+        // scheduling (only set when desserts exist)
+        ...schedulingFields,
       });
 
-      // 2. Sync order locally with Zustand using the generated ID
+      // Sync order locally (Zustand)
       placeOrder({
         items,
         subtotal,
@@ -198,14 +225,16 @@ export default function CheckoutPage() {
         total,
         address: formData,
         location: locationState.coords,
-        estimatedTime: '25–35 minutes',
+        estimatedTime: containsDessert && dessertSlot
+          ? `Dessert by ${getRelativeDateLabel(dessertSlot.isoDate)}, ${dessertSlot.time}`
+          : '25–35 minutes',
       }, orderId);
 
-      clearCart();
+      clearCart(); // also clears slot + coffeeDeliveryMode
       router.push(`/order-success?id=${orderId}`);
     } catch (error) {
-      console.error("Failed to place order:", error);
-      alert("Failed to place order. Please try again.");
+      console.error('Failed to place order:', error);
+      alert('Failed to place order. Please try again.');
       setIsSubmitting(false);
     }
   };
@@ -245,15 +274,14 @@ export default function CheckoutPage() {
               {['Cart', 'Login', 'Checkout', 'Order Confirmed'].map((step, idx, arr) => {
                 const isActive = step === 'Checkout';
                 const isPast = ['Cart', 'Login'].includes(step);
-                
                 return (
                   <div key={step} className="flex items-center gap-2 lg:gap-4 shrink-0">
                     <span
                       className={`text-[10px] tracking-[0.2em] uppercase whitespace-nowrap transition-colors duration-300 ${
-                        isActive 
-                          ? 'text-[#B8956A] font-bold' 
-                          : isPast 
-                            ? 'text-[#EDE3D0]/60' 
+                        isActive
+                          ? 'text-[#B8956A] font-bold'
+                          : isPast
+                            ? 'text-[#EDE3D0]/60'
                             : 'text-[#EDE3D0]/30'
                       }`}
                       style={{ fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif' }}
@@ -283,7 +311,7 @@ export default function CheckoutPage() {
               transition={{ duration: 0.6, ease, delay: 0.1 }}
               className="space-y-12"
             >
-              
+
               {/* Delivery Details */}
               <div className="bg-[#1a1410] border border-[#B8956A]/15 p-6 lg:p-10">
                 <div className="flex items-center gap-4 mb-8">
@@ -379,7 +407,7 @@ export default function CheckoutPage() {
                 <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
                   <Navigation className="w-32 h-32" />
                 </div>
-                
+
                 <div className="flex items-center justify-between mb-6 relative z-10">
                   <div className="flex items-center gap-4">
                     <Navigation className="text-[#B8956A] w-5 h-5" />
@@ -438,13 +466,13 @@ export default function CheckoutPage() {
                         className="overflow-hidden"
                       >
                         <div className="mt-6 border border-[#B8956A]/20 bg-[#15110D] p-1">
-                          <iframe 
-                            width="100%" 
-                            height="200" 
-                            style={{ border: 0 }} 
-                            loading="lazy" 
-                            allowFullScreen 
-                            referrerPolicy="no-referrer-when-downgrade" 
+                          <iframe
+                            width="100%"
+                            height="200"
+                            style={{ border: 0 }}
+                            loading="lazy"
+                            allowFullScreen
+                            referrerPolicy="no-referrer-when-downgrade"
                             src={`https://maps.google.com/maps?q=${locationState.coords.lat},${locationState.coords.lng}&z=15&output=embed`}
                             className="opacity-80 sepia-[0.3] hue-rotate-[-10deg]"
                           ></iframe>
@@ -458,6 +486,84 @@ export default function CheckoutPage() {
                   </AnimatePresence>
                 </div>
               </div>
+
+              {/* ── Delivery Schedule (only shown when desserts are in cart) ── */}
+              {hasDesserts() && dessertSlot && (
+                <div className="bg-[#1a1410] border border-[#B8956A]/15 p-6 lg:p-10">
+                  <div className="flex items-center gap-4 mb-6">
+                    <Calendar className="text-[#B8956A] w-5 h-5" />
+                    <h2
+                      className="text-[#EDE3D0] text-xl tracking-wide"
+                      style={{ fontFamily: 'Georgia, serif' }}
+                    >
+                      Delivery Schedule
+                    </h2>
+                  </div>
+
+                  <div className="space-y-4">
+                    {/* Dessert slot */}
+                    <div
+                      className="flex items-start gap-4 p-4"
+                      style={{ background: 'rgba(184,149,106,0.06)', border: '1px solid rgba(184,149,106,0.15)' }}
+                    >
+                      <div className="w-8 h-8 flex-shrink-0 flex items-center justify-center" style={{ background: 'rgba(184,149,106,0.12)' }}>
+                        <span className="text-base">🍰</span>
+                      </div>
+                      <div>
+                        <p
+                          className="text-[10px] tracking-[0.2em] uppercase mb-1"
+                          style={{ color: 'rgba(237,227,208,0.35)', fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif' }}
+                        >
+                          Dessert Delivery
+                        </p>
+                        <p
+                          className="text-sm font-medium"
+                          style={{ color: '#EDE3D0', fontFamily: 'Georgia, serif' }}
+                        >
+                          📅 {getRelativeDateLabel(dessertSlot.isoDate)}
+                          <span className="text-[#B8956A] mx-2">·</span>
+                          🕓 {dessertSlot.time}
+                        </p>
+                        <p
+                          className="text-xs mt-1"
+                          style={{ color: 'rgba(237,227,208,0.35)', fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif' }}
+                        >
+                          {formatScheduledTime(dessertSlot.scheduledTimestamp)}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Coffee mode */}
+                    {hasCoffee() && coffeeDeliveryMode && (
+                      <div
+                        className="flex items-start gap-4 p-4"
+                        style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(184,149,106,0.1)' }}
+                      >
+                        <div className="w-8 h-8 flex-shrink-0 flex items-center justify-center" style={{ background: 'rgba(184,149,106,0.08)' }}>
+                          <Coffee size={15} style={{ color: '#B8956A' }} />
+                        </div>
+                        <div>
+                          <p
+                            className="text-[10px] tracking-[0.2em] uppercase mb-1"
+                            style={{ color: 'rgba(237,227,208,0.35)', fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif' }}
+                          >
+                            Coffee Delivery
+                          </p>
+                          <p
+                            className="text-sm font-medium"
+                            style={{ color: '#EDE3D0', fontFamily: 'Georgia, serif' }}
+                          >
+                            {coffeeDeliveryMode === 'immediate'
+                              ? '☕ Immediate — delivered as soon as ready'
+                              : `🍰 With dessert — ${getRelativeDateLabel(dessertSlot.isoDate)} · ${dessertSlot.time}`
+                            }
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {/* Payment Method */}
               <div className="bg-[#1a1410] border border-[#B8956A]/15 p-6 lg:p-10">
@@ -480,7 +586,7 @@ export default function CheckoutPage() {
                   </div>
                   <ShieldCheck className="text-[#B8956A]/60 w-5 h-5" />
                 </div>
-                
+
                 <p className="mt-4 text-[#EDE3D0]/40 text-xs italic">
                   * Online payments will be available soon.
                 </p>
@@ -518,6 +624,38 @@ export default function CheckoutPage() {
                 ))}
               </div>
 
+              {/* Scheduling summary in sidebar */}
+              {hasDesserts() && dessertSlot && (
+                <div
+                  className="mb-6 p-3 space-y-2"
+                  style={{ background: 'rgba(184,149,106,0.06)', border: '1px solid rgba(184,149,106,0.15)' }}
+                >
+                  <div className="flex items-center gap-2">
+                    <Calendar size={12} style={{ color: '#B8956A' }} />
+                    <p
+                      className="text-[9px] tracking-[0.2em] uppercase"
+                      style={{ color: 'rgba(237,227,208,0.4)', fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif' }}
+                    >
+                      Scheduled Delivery
+                    </p>
+                  </div>
+                  <p
+                    className="text-xs"
+                    style={{ color: 'rgba(237,227,208,0.7)', fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif' }}
+                  >
+                    🍰 {getRelativeDateLabel(dessertSlot.isoDate)} · {dessertSlot.time}
+                  </p>
+                  {hasCoffee() && coffeeDeliveryMode && (
+                    <p
+                      className="text-xs"
+                      style={{ color: 'rgba(237,227,208,0.5)', fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif' }}
+                    >
+                      ☕ Coffee: {coffeeDeliveryMode === 'immediate' ? 'Immediate' : 'With dessert'}
+                    </p>
+                  )}
+                </div>
+              )}
+
               <div className="w-full h-px bg-[#B8956A]/15 mb-6" />
 
               {/* Totals */}
@@ -541,9 +679,9 @@ export default function CheckoutPage() {
                 </span>
               </div>
 
-              {/* Place Order CTA */}
+              {/* Place Order CTA — opens confirmation modal */}
               <button
-                onClick={handlePlaceOrder}
+                onClick={() => isFormValid && setShowConfirmModal(true)}
                 disabled={!isFormValid || isSubmitting}
                 className={`
                   w-full flex items-center justify-center gap-3
@@ -559,7 +697,7 @@ export default function CheckoutPage() {
                   <Loader2 className="w-5 h-5 animate-spin" />
                 ) : (
                   <>
-                    Place Order
+                    Review & Place Order
                     {isFormValid && <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform duration-300" />}
                   </>
                 )}
@@ -569,20 +707,25 @@ export default function CheckoutPage() {
               {!isFormValid && !isSubmitting && (
                 <div className="mt-4 space-y-1">
                   <p className="text-center text-[#B8956A]/60 text-[10px] tracking-[0.1em]">
-                    Please complete required fields to proceed:
+                    Please complete required fields:
                   </p>
                   <ul className="text-[#EDE3D0]/40 text-[10px] list-disc pl-4 space-y-0.5">
                     {formData.fullName.trim() === '' && <li>Full Name is required</li>}
                     {!isPhoneValid && <li>Valid 10-digit Phone Number is required</li>}
                     {formData.fullAddress.trim() === '' && <li>Complete Address is required</li>}
                     {!locationState.coords && <li>Live Location must be detected</li>}
+                    {!hasValidSlot && <li>Dessert delivery slot must be selected</li>}
+                    {!hasValidCoffeeMode && <li>Coffee delivery preference must be chosen</li>}
                   </ul>
                 </div>
               )}
 
               <div className="mt-6 pt-4 border-t border-[#B8956A]/10 text-center">
                 <p className="text-[#EDE3D0]/40 text-xs">
-                  Estimated delivery: <span className="text-[#B8956A]">25–35 minutes</span>
+                  {hasDesserts()
+                    ? <>Dessert delivery: <span className="text-[#B8956A]">{dessertSlot?.time ?? 'pending slot'}</span></>
+                    : <>Estimated delivery: <span className="text-[#B8956A]">25–35 minutes</span></>
+                  }
                 </p>
               </div>
 
@@ -611,28 +754,163 @@ export default function CheckoutPage() {
               >
                 <X className="w-5 h-5" />
               </button>
-
               <div className="flex flex-col items-center text-center mt-2">
                 <div className="w-16 h-16 rounded-full bg-[#B8956A]/10 flex items-center justify-center mb-6">
                   <AlertCircle className="w-8 h-8 text-[#B8956A]" />
                 </div>
-                
-                <h3 
-                  className="text-[#EDE3D0] text-2xl mb-3"
-                  style={{ fontFamily: 'Georgia, serif' }}
-                >
+                <h3 className="text-[#EDE3D0] text-2xl mb-3" style={{ fontFamily: 'Georgia, serif' }}>
                   Outside Delivery Zone
                 </h3>
-                
                 <p className="text-[#EDE3D0]/60 text-sm leading-relaxed mb-8">
                   We're sorry, but we currently only deliver within <strong className="text-[#B8956A] font-medium">Kanpur</strong>. We're working hard to expand our services to more areas soon!
                 </p>
-
                 <button
                   onClick={() => setShowLocationAlert(false)}
                   className="w-full bg-[#B8956A] text-[#15110D] py-4 text-xs tracking-[0.2em] uppercase font-bold hover:bg-[#EDE3D0] transition-colors duration-300"
                 >
                   Got It
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Pre-Submit Confirmation Modal ── */}
+      <AnimatePresence>
+        {showConfirmModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 12 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 12 }}
+              transition={{ duration: 0.3, ease }}
+              className="relative w-full max-w-md bg-[#1a1410] border border-[#B8956A]/20 shadow-2xl"
+            >
+              {/* Header */}
+              <div
+                className="flex items-center justify-between px-6 py-5 border-b"
+                style={{ borderColor: 'rgba(184,149,106,0.15)' }}
+              >
+                <h3
+                  className="text-[#EDE3D0] text-xl"
+                  style={{ fontFamily: 'Georgia, serif' }}
+                >
+                  Confirm Your Order
+                </h3>
+                <button
+                  onClick={() => setShowConfirmModal(false)}
+                  className="text-[#EDE3D0]/40 hover:text-[#B8956A] transition-colors"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Body */}
+              <div className="px-6 py-6 space-y-4">
+                {/* Items summary */}
+                <div>
+                  <p
+                    className="text-[9px] tracking-[0.25em] uppercase mb-2"
+                    style={{ color: 'rgba(237,227,208,0.3)', fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif' }}
+                  >
+                    Order Summary
+                  </p>
+                  {items.map(item => (
+                    <div key={item.product.id} className="flex justify-between text-sm py-1">
+                      <span style={{ color: 'rgba(237,227,208,0.7)', fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif' }}>
+                        {item.product.name} × {item.quantity}
+                      </span>
+                      <span style={{ color: '#B8956A', fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif' }}>
+                        ₹{(item.product.price * item.quantity).toLocaleString('en-IN')}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="w-full h-px" style={{ background: 'rgba(184,149,106,0.12)' }} />
+
+                {/* Scheduling summary */}
+                {hasDesserts() && dessertSlot && (
+                  <div className="space-y-2">
+                    <p
+                      className="text-[9px] tracking-[0.25em] uppercase"
+                      style={{ color: 'rgba(237,227,208,0.3)', fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif' }}
+                    >
+                      Delivery Schedule
+                    </p>
+                    <div className="space-y-2">
+                      <div
+                        className="flex items-center gap-3 p-3"
+                        style={{ background: 'rgba(184,149,106,0.06)', border: '1px solid rgba(184,149,106,0.12)' }}
+                      >
+                        <span className="text-base">🍰</span>
+                        <div>
+                          <p className="text-xs font-medium" style={{ color: '#EDE3D0', fontFamily: 'Georgia, serif' }}>
+                            Dessert — {getRelativeDateLabel(dessertSlot.isoDate)} · {dessertSlot.time}
+                          </p>
+                        </div>
+                      </div>
+                      {hasCoffee() && coffeeDeliveryMode && (
+                        <div
+                          className="flex items-center gap-3 p-3"
+                          style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(184,149,106,0.1)' }}
+                        >
+                          <span className="text-base">☕</span>
+                          <p className="text-xs" style={{ color: 'rgba(237,227,208,0.7)', fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif' }}>
+                            Coffee — {coffeeDeliveryMode === 'immediate'
+                              ? 'Immediate delivery'
+                              : `With dessert (${dessertSlot.time})`
+                            }
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Total */}
+                <div className="flex items-center justify-between pt-2">
+                  <span
+                    className="text-sm"
+                    style={{ color: 'rgba(237,227,208,0.5)', fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif' }}
+                  >
+                    Grand Total
+                  </span>
+                  <span
+                    className="text-lg font-bold"
+                    style={{ color: '#B8956A', fontFamily: 'Georgia, serif' }}
+                  >
+                    ₹{total.toLocaleString('en-IN')}
+                  </span>
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div
+                className="flex items-center gap-3 px-6 py-5 border-t"
+                style={{ borderColor: 'rgba(184,149,106,0.12)' }}
+              >
+                <button
+                  onClick={() => setShowConfirmModal(false)}
+                  className="flex-1 py-3.5 text-xs tracking-[0.2em] uppercase transition-colors"
+                  style={{
+                    border: '1px solid rgba(184,149,106,0.2)',
+                    color: 'rgba(237,227,208,0.5)',
+                    fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif',
+                  }}
+                >
+                  Back
+                </button>
+                <button
+                  onClick={handlePlaceOrder}
+                  disabled={isSubmitting}
+                  className="flex-[2] flex items-center justify-center gap-2 py-3.5 text-xs tracking-[0.2em] uppercase font-bold bg-[#B8956A] text-[#15110D] hover:bg-[#EDE3D0] transition-colors"
+                  style={{ fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif' }}
+                >
+                  {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : (
+                    <>Place Order <ArrowRight size={14} /></>
+                  )}
                 </button>
               </div>
             </motion.div>

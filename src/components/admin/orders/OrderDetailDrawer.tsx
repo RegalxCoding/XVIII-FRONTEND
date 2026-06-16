@@ -1,8 +1,9 @@
 'use client';
 
-import { X, MapPin, Phone, User, CheckCircle2, ChevronDown } from 'lucide-react';
+import { X, MapPin, Phone, User, CheckCircle2, ChevronDown, Calendar, Clock, Coffee } from 'lucide-react';
 import StatusBadge, { STATUS_CONFIG } from './StatusBadge';
 import type { AdminOrder, AdminOrderStatus } from '@/types/admin.types';
+import { formatScheduledTime, getRelativeDateLabel } from '@/utils/timeSlots';
 
 interface OrderDetailDrawerProps {
   order: AdminOrder;
@@ -208,6 +209,101 @@ export default function OrderDetailDrawer({
               ))}
             </div>
           </section>
+
+          {/* ── Delivery Schedule (only for scheduled orders) ── */}
+          {order.isScheduled && order.scheduledTimestamp && (
+            <section>
+              <p style={sectionHeading}>Delivery Schedule</p>
+              <div
+                className="rounded-xl overflow-hidden"
+                style={{ border: '1px solid rgba(184,149,106,0.2)', background: 'rgba(184,149,106,0.05)' }}
+              >
+                {/* Dessert slot */}
+                <div className="p-4 flex items-start gap-4">
+                  <div
+                    className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
+                    style={{ background: 'rgba(184,149,106,0.12)' }}
+                  >
+                    <span className="text-base">🍰</span>
+                  </div>
+                  <div className="flex-1">
+                    <p
+                      className="text-[9px] tracking-[0.2em] uppercase mb-1"
+                      style={{ color: 'rgba(237,227,208,0.3)', fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif' }}
+                    >
+                      Dessert Delivery
+                    </p>
+                    <div className="flex items-center gap-2 mb-1">
+                      <Calendar size={13} style={{ color: '#B8956A', flexShrink: 0 }} />
+                      <p
+                        className="text-sm font-medium"
+                        style={{ color: '#EDE3D0', fontFamily: 'Georgia, serif' }}
+                      >
+                        {getRelativeDateLabel(order.deliveryDate ?? '')} · {order.deliveryTime}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Clock size={12} style={{ color: 'rgba(184,149,106,0.5)', flexShrink: 0 }} />
+                      <p
+                        className="text-xs"
+                        style={{ color: 'rgba(237,227,208,0.4)', fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif' }}
+                      >
+                        {formatScheduledTime(order.scheduledTimestamp)}
+                      </p>
+                    </div>
+                  </div>
+                  {/* Scheduled badge */}
+                  <div
+                    className="flex-shrink-0 px-2 py-1 rounded text-[9px] tracking-[0.15em] uppercase font-bold"
+                    style={{ background: 'rgba(234,179,8,0.12)', color: '#eab308', border: '1px solid rgba(234,179,8,0.25)' }}
+                  >
+                    🟡 Scheduled
+                  </div>
+                </div>
+
+                {/* Coffee fulfillment mode */}
+                {order.containsCoffee && order.coffeeDeliveryMode && (
+                  <div
+                    className="flex items-start gap-4 p-4 border-t"
+                    style={{ borderColor: 'rgba(184,149,106,0.12)', background: 'rgba(255,255,255,0.015)' }}
+                  >
+                    <div
+                      className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
+                      style={{ background: 'rgba(184,149,106,0.08)' }}
+                    >
+                      <Coffee size={15} style={{ color: '#B8956A' }} />
+                    </div>
+                    <div className="flex-1">
+                      <p
+                        className="text-[9px] tracking-[0.2em] uppercase mb-1"
+                        style={{ color: 'rgba(237,227,208,0.3)', fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif' }}
+                      >
+                        Coffee Fulfillment
+                      </p>
+                      <p
+                        className="text-sm font-medium"
+                        style={{ color: '#EDE3D0', fontFamily: 'Georgia, serif' }}
+                      >
+                        {order.coffeeDeliveryMode === 'immediate'
+                          ? '☕ Immediate delivery'
+                          : `🍰 With dessert · ${order.deliveryTime}`
+                        }
+                      </p>
+                    </div>
+                    <div
+                      className="flex-shrink-0 px-2 py-1 rounded text-[9px] tracking-[0.15em] uppercase font-bold"
+                      style={order.coffeeDeliveryMode === 'immediate'
+                        ? { background: 'rgba(74,222,128,0.1)', color: '#4ade80', border: '1px solid rgba(74,222,128,0.25)' }
+                        : { background: 'rgba(184,149,106,0.12)', color: '#B8956A', border: '1px solid rgba(184,149,106,0.3)' }
+                      }
+                    >
+                      {order.coffeeDeliveryMode === 'immediate' ? '🟢 Immediate' : '🍰 Bundled'}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </section>
+          )}
 
           {/* ── Order Summary ── */}
           <section>

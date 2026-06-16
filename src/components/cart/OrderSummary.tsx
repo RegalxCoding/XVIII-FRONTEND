@@ -1,9 +1,10 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Calendar, AlertCircle } from 'lucide-react';
 import { useCartStore, DELIVERY_FEE } from '@/store/cart.store';
 import { useAuthStore } from '@/store/auth.store';
+import { getRelativeDateLabel } from '@/utils/timeSlots';
 
 // ─────────────────────────────────────────
 // OrderSummary — sticky sidebar on desktop
@@ -13,6 +14,11 @@ export default function OrderSummary() {
   const router = useRouter();
   const getSubtotal = useCartStore((s) => s.getSubtotal);
   const items = useCartStore((s) => s.items);
+  const dessertSlot = useCartStore((s) => s.dessertSlot);
+  const coffeeDeliveryMode = useCartStore((s) => s.coffeeDeliveryMode);
+  const hasDesserts = useCartStore((s) => s.hasDesserts);
+  const isMixedOrder = useCartStore((s) => s.isMixedOrder);
+  const isSlotValid = useCartStore((s) => s.isSlotValid);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
 
   const subtotal = getSubtotal();
@@ -20,10 +26,22 @@ export default function OrderSummary() {
   const itemCount = items.reduce((sum, i) => sum + i.quantity, 0);
   const isEmpty = items.length === 0;
 
+  // ── Checkout gate logic ──
+  const needsSlot = hasDesserts() && (!dessertSlot || !isSlotValid());
+  const needsCoffeeMode = isMixedOrder() && !coffeeDeliveryMode;
+  const canCheckout = !isEmpty && !needsSlot && !needsCoffeeMode;
+
   const handleCheckout = () => {
-    // Allowing proceed to checkout even if not authenticated for testing the new checkout page
+    if (!canCheckout) return;
     router.push('/checkout');
   };
+
+  // Helper text for blocked states
+  const blockingReason = needsSlot
+    ? 'Select a delivery slot for your dessert'
+    : needsCoffeeMode
+      ? 'Choose when to deliver your coffee'
+      : null;
 
   return (
     <aside
@@ -88,6 +106,38 @@ export default function OrderSummary() {
       {/* Divider */}
       <div className="w-full h-px bg-[#B8956A]/15 mb-6" />
 
+      {/* ── Dessert scheduling summary (shown in sidebar) ── */}
+      {hasDesserts() && dessertSlot && isSlotValid() && (
+        <div
+          className="mb-6 p-3 flex items-start gap-3"
+          style={{ background: 'rgba(184,149,106,0.06)', border: '1px solid rgba(184,149,106,0.15)' }}
+        >
+          <Calendar size={13} className="flex-shrink-0 mt-0.5" style={{ color: '#B8956A' }} />
+          <div>
+            <p
+              className="text-[9px] tracking-[0.2em] uppercase mb-1"
+              style={{ color: 'rgba(237,227,208,0.3)', fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif' }}
+            >
+              Dessert Delivery
+            </p>
+            <p
+              className="text-xs"
+              style={{ color: 'rgba(237,227,208,0.7)', fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif' }}
+            >
+              {getRelativeDateLabel(dessertSlot.isoDate)} · {dessertSlot.time}
+            </p>
+            {coffeeDeliveryMode && (
+              <p
+                className="text-[10px] mt-1"
+                style={{ color: 'rgba(237,227,208,0.4)', fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif' }}
+              >
+                Coffee: {coffeeDeliveryMode === 'immediate' ? '☕ Immediate' : '🍰 With dessert'}
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Total */}
       <div className="flex items-end justify-between mb-10">
         <span
@@ -111,32 +161,47 @@ export default function OrderSummary() {
       <button
         id="checkout-btn"
         onClick={handleCheckout}
-        disabled={isEmpty}
+        disabled={!canCheckout}
         className={`
           w-full flex items-center justify-center gap-3
           py-4 text-xs tracking-[0.25em] uppercase font-bold
           transition-all duration-300 group
-          ${isEmpty
-            ? 'bg-[#EDE3D0]/8 text-[#EDE3D0]/20 cursor-not-allowed'
-            : 'bg-[#B8956A] text-[#15110D] hover:bg-[#EDE3D0] active:scale-[0.98]'
+          ${canCheckout
+            ? 'bg-[#B8956A] text-[#15110D] hover:bg-[#EDE3D0] active:scale-[0.98]'
+            : 'bg-[#EDE3D0]/8 text-[#EDE3D0]/20 cursor-not-allowed'
           }
         `}
         style={{ fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif' }}
         aria-label={
           isEmpty
             ? 'Cart is empty'
-            : isAuthenticated
-              ? 'Proceed to checkout'
-              : 'Login to checkout'
+            : !canCheckout
+              ? blockingReason ?? 'Complete required steps'
+              : isAuthenticated
+                ? 'Proceed to checkout'
+                : 'Login to checkout'
         }
       >
         Proceed to Checkout
-        {!isEmpty && (
+        {canCheckout && (
           <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform duration-300" />
         )}
       </button>
 
-      {/* Login note — shown when not authenticated and cart has items */}
+      {/* Blocking reason helper text */}
+      {!isEmpty && blockingReason && (
+        <div className="mt-4 flex items-start gap-2">
+          <AlertCircle size={12} className="flex-shrink-0 mt-0.5" style={{ color: 'rgba(251,146,60,0.6)' }} />
+          <p
+            className="text-[10px] leading-relaxed"
+            style={{ color: 'rgba(251,146,60,0.7)', fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif' }}
+          >
+            {blockingReason}
+          </p>
+        </div>
+      )}
+
+      {/* Login note */}
       {!isAuthenticated && !isEmpty && (
         <p
           className="text-center text-[#EDE3D0]/30 text-[10px] tracking-[0.15em] mt-4"

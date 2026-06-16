@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
-import { Package, Clock, MapPin, ChevronRight, User, Settings, LogOut, ArrowRight, Wallet } from 'lucide-react';
+import { Package, Clock, MapPin, ChevronRight, User, Settings, LogOut, ArrowRight, Wallet, Calendar } from 'lucide-react';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import { useOrderStore } from '@/store/order.store';
@@ -11,6 +11,7 @@ import { useAuthStore } from '@/store/auth.store';
 import { ordersService, mapAdminStatusToCustomerStatus } from '@/services/orders.service';
 import type { Order } from '@/store/order.store';
 import type { AdminOrder } from '@/types/admin.types';
+import { getRelativeDateLabel } from '@/utils/timeSlots';
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
@@ -76,7 +77,13 @@ export default function DashboardPage() {
         status: mapAdminStatusToCustomerStatus(dbOrder.status) as any,
         date: dbOrder.createdAt,
         paymentMethod: 'Cash on Delivery',
-        estimatedTime: '25–35 minutes',
+        estimatedTime: (() => {
+          // Derive estimatedTime from scheduling fields if available
+          if (dbOrder.isScheduled && dbOrder.deliveryDate && dbOrder.deliveryTime) {
+            return `Dessert by ${getRelativeDateLabel(dbOrder.deliveryDate)}, ${dbOrder.deliveryTime}`;
+          }
+          return '25–35 minutes';
+        })(),
       }))
     : localOrders;
 

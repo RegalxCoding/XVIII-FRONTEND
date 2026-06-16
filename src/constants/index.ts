@@ -1,4 +1,25 @@
 // ─────────────────────────────────────────
+// Dessert Scheduling Config
+// Single source of truth — change here, not in components.
+// Future: these values can be moved to a Firestore settings document
+// without rewriting utility logic (functions accept them as parameters).
+// ─────────────────────────────────────────
+
+export const BUSINESS_HOURS = {
+  open: 8,   // 8 AM opening — update here when hours change
+  close: 22, // 10 PM closing
+} as const;
+
+/** Hour interval between each available delivery slot */
+export const DELIVERY_SLOT_INTERVAL_HOURS = 1;
+
+/** Minimum hours in advance required for same-day dessert orders */
+export const DESSERT_MIN_ADVANCE_HOURS = 6;
+
+/** IANA timezone for all scheduling calculations — never use browser default */
+export const BUSINESS_TIMEZONE = 'Asia/Kolkata';
+
+// ─────────────────────────────────────────
 // Brand Constants
 // ─────────────────────────────────────────
 
