@@ -301,6 +301,19 @@ function OrderCard({ order }: { order: Order }) {
         </div>
       </div>
 
+      {/* Track Order Link */}
+      <div className="pt-6 border-t border-[#B8956A]/10">
+        <Link
+          href={`/orders/${order.id}`}
+          className="inline-flex items-center gap-2 text-[#B8956A] text-xs tracking-[0.15em] uppercase font-semibold hover:text-[#EDE3D0] transition-colors duration-300 group"
+          style={{ fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif' }}
+        >
+          <Package className="w-3.5 h-3.5" />
+          Track Order
+          <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+        </Link>
+      </div>
+
     </div>
   );
 }
