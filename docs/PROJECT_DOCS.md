@@ -76,6 +76,7 @@ The `src/app/` directory uses the Next.js 15 App Router. Every `page.tsx` is a s
 | `rewards/page.tsx`      | `/rewards`     | Loyalty programme page (scaffold)                                                                                                                                   |
 | `login/page.tsx`        | `/login`       | Customer login page (scaffold). Cart checkout redirects here when user is not logged in.                                                                            |
 | `product/[id]/page.tsx` | `/product/:id` | Dynamic product detail page. Reads `params.id` from the URL.                                                                                                        |
+| `orders/[id]/page.tsx`  | `/orders/:id`  | **Order tracking page.** Premium real-time order journey view. Server component that extracts `params.id` and renders `OrderTracker`. Navbar + Footer + ambient background glow orbs. Metadata: "Track Order \| The XVIII Brew Co." |
 
 #### Admin Pages
 
@@ -113,6 +114,14 @@ The `src/app/` directory uses the Next.js 15 App Router. Every `page.tsx` is a s
 | ----------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `CartItemRow.tsx` | Single cart item row             | Fixed `1:1 (square)` image thumbnail (`object-fit: cover`). Product name, category label, description (line-clamped). Quantity stepper (`−` / count / `+`) wired to `updateQuantity`. `×` remove button wired to `removeFromCart`. Live line total. AnimatePresence exit animation. |
 | `OrderSummary.tsx`| Sticky order summary sidebar     | Sticky on desktop (`lg:sticky lg:top-32`). Shows Subtotal (with item count), Delivery Fee (₹40 flat), Total. **Checkout gate:** Button is disabled with an explanatory helper text if: (a) cart has a dessert but no valid slot is set, or (b) it is a mixed order but no coffee delivery mode is chosen. Shows a mini scheduling summary (date · time · coffee mode) when all scheduling info is complete. |
+
+#### Order Tracking Components (`src/components/orders/`)
+
+| File                        | Purpose                        | Key Features                                                                                                                                                                                                                                              |
+| --------------------------- | ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `OrderTracker.tsx`          | Order tracking orchestrator    | **Client component.** Manages real-time Firestore `onSnapshot` listener for a single order (by custom brand ID). Handles four states: loading (skeleton), not-found (search icon + CTA), cancelled (❌ notice + order details for reference), and active tracking (timeline + details card). Two-column desktop layout (`lg:grid-cols-5`): timeline 3 cols, details 2 cols. Single column stacked on mobile. |
+| `OrderProgressTimeline.tsx` | Vertical premium timeline      | 5-step journey: Order Received → Order Confirmed → Crafting Your Order → Ready / Out For Delivery → Delivered. **Completed:** gold icon with check + glow shadow. **Active:** Framer Motion pulsing node + animated ring + "Current" badge with blinking dot. **Upcoming:** dimmed at 25% opacity with dashed connector. Staggered entry animation via `variants` + `staggerChildren`. |
+| `OrderStatusCard.tsx`       | Order details card             | Dark glassmorphism card (`#1e1812`). Sections: order header (ID + date), items list (quantity badges), price breakdown (subtotal/delivery/total with gold accent), delivery address, payment method. **Scheduling:** shows "📅 Scheduled Delivery" with `formatScheduledTime()` when `isScheduled`, else "Estimated Delivery: 25–35 mins". Mixed-order coffee fulfillment pill (☕ Immediate / 🍰 Bundled). |
 
 #### UI Components (`src/components/ui/`)
 
@@ -257,6 +266,7 @@ Located in `src/types/`. Pure TypeScript interfaces — no runtime code.
 | `product.types.ts` | `Product`, `ProductCategory`, `ProductFilters`                                                                   | Menu product data shape and filter options                           |
 | `order.types.ts`   | `Order`, `OrderItem`, `OrderStatus`, `RewardStamp`, `Reward`                                                     | Customer order lifecycle and rewards programme types                 |
 | `admin.types.ts`   | `AdminProduct`, `AdminProductCategory`, `AdminOrder`, `AdminOrderItem`, `AdminOrderStatus`, `PaymentMethod`, `AdminCredentials` | All types used exclusively in the admin panel. Separate from the customer-facing types. |
+| `order-tracking.types.ts` | `TrackingStep`, `TrackingState`, `TRACKING_STEPS`, `getStepState()` | Customer-facing order journey types. Maps `AdminOrderStatus` to friendly labels/descriptions/icons. `getStepState()` determines if a step is completed, active, or upcoming. |
 
 **Key `admin.types.ts` shapes:**
 
@@ -648,6 +658,23 @@ npx tsx scripts/seed-products.ts # Seed initial mock products to Firestore
 ## 13. Changelog
 
 A running log of all significant frontend changes. Most recent first.
+
+---
+
+### 24 June 2026
+
+#### Customer Order Tracking Page
+
+Premium real-time order tracking experience at `/orders/:id`. Starbucks Reserve-inspired vertical timeline with Framer Motion animations and Firestore real-time subscription.
+
+**New files:**
+- [`order-tracking.types.ts`](file:///c:/Users/ROHIT/Desktop/XVII/XVIII-FRONTEND/src/types/order-tracking.types.ts) — `TrackingStep` and `TrackingState` types. `TRACKING_STEPS` constant mapping `AdminOrderStatus` to customer-friendly labels, descriptions, and emoji icons. `getStepState()` utility to determine completed/active/upcoming states.
+- [`OrderTracker.tsx`](file:///c:/Users/ROHIT/Desktop/XVII/XVIII-FRONTEND/src/components/orders/OrderTracker.tsx) — Client orchestrator component. Sets up real-time Firestore `onSnapshot` listener for a single order. Manages loading skeleton, not-found, cancelled, and active tracking states. Two-column responsive layout.
+- [`OrderProgressTimeline.tsx`](file:///c:/Users/ROHIT/Desktop/XVII/XVIII-FRONTEND/src/components/orders/OrderProgressTimeline.tsx) — Vertical 5-step timeline with gold completed steps (check icon + glow), animated active step (pulse + ring animation + "Current" badge), and dimmed upcoming steps. Staggered entry animation.
+- [`OrderStatusCard.tsx`](file:///c:/Users/ROHIT/Desktop/XVII/XVIII-FRONTEND/src/components/orders/OrderStatusCard.tsx) — Dark glassmorphism order details card. Shows order ID, items with quantity badges, price breakdown, delivery address, payment method. Conditional scheduling section (scheduled vs estimated delivery). Mixed-order coffee fulfillment mode pill.
+- [`orders/[id]/page.tsx`](file:///c:/Users/ROHIT/Desktop/XVII/XVIII-FRONTEND/src/app/orders/[id]/page.tsx) — Server component page route. Extracts `params.id`, renders Navbar + OrderTracker + Footer with ambient background glow orbs.
+
+**No existing files modified.** All new code — `orders.service.ts`, checkout flow, admin panel, and database schema remain untouched.
 
 ---
 

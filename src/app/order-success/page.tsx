@@ -162,7 +162,7 @@ function OrderSuccessContent() {
         className="flex flex-col sm:flex-row items-center gap-4 mt-12 w-full max-w-lg"
       >
         <Link
-          href={`/dashboard?track=${order.id}`}
+          href={`/orders/${order.id}`}
           className="w-full sm:w-1/2 flex items-center justify-center gap-2 bg-[#B8956A] text-[#15110D] py-4 text-xs tracking-[0.2em] uppercase font-bold hover:bg-[#EDE3D0] transition-colors"
         >
           <Package className="w-4 h-4" /> Track Order
