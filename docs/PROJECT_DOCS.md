@@ -75,6 +75,7 @@ The `src/app/` directory uses the Next.js 15 App Router. Every `page.tsx` is a s
 | `contact/page.tsx`      | `/contact`     | Contact page (scaffold)                                                                                                                                             |
 | `rewards/page.tsx`      | `/rewards`     | Loyalty programme page (scaffold)                                                                                                                                   |
 | `login/page.tsx`        | `/login`       | Customer login page (scaffold). Cart checkout redirects here when user is not logged in.                                                                            |
+| `api/email/receipt/route.ts`| `/api/email/receipt`| **Server-Side API.** Secure endpoint utilizing the `resend` SDK to dispatch HTML email receipts securely without exposing API keys to the browser.                          |
 | `product/[id]/page.tsx` | `/product/:id` | Dynamic product detail page. Reads `params.id` from the URL.                                                                                                        |
 | `orders/[id]/page.tsx`  | `/orders/:id`  | **Order tracking page.** Premium real-time order journey view. Server component that extracts `params.id` and renders `OrderTracker`. Navbar + Footer + ambient background glow orbs. Metadata: "Track Order \| The XVIII Brew Co." |
 
@@ -113,7 +114,8 @@ The `src/app/` directory uses the Next.js 15 App Router. Every `page.tsx` is a s
 | File              | Purpose                          | Key Features                                                                                                                                                                                                                          |
 | ----------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `CartItemRow.tsx` | Single cart item row             | Fixed `1:1 (square)` image thumbnail (`object-fit: cover`). Product name, category label, description (line-clamped). Quantity stepper (`−` / count / `+`) wired to `updateQuantity`. `×` remove button wired to `removeFromCart`. Live line total. AnimatePresence exit animation. |
-| `OrderSummary.tsx`| Sticky order summary sidebar     | Sticky on desktop (`lg:sticky lg:top-32`). Shows Subtotal (with item count), Delivery Fee (₹40 flat), Total. **Checkout gate:** Button is disabled with an explanatory helper text if: (a) cart has a dessert but no valid slot is set, or (b) it is a mixed order but no coffee delivery mode is chosen. Shows a mini scheduling summary (date · time · coffee mode) when all scheduling info is complete. |
+| `OrderSummary.tsx`| Sticky order summary sidebar     | Sticky on desktop (`lg:sticky lg:top-32`). Shows Subtotal (with item count), Delivery Fee (₹40 flat), Total. **Checkout gate:** Button is disabled if requirements aren't met. **Interception:** On click, checks authentication and fetches the Firebase user profile. If `email` is missing, dynamically triggers `EmailCaptureModal` before routing to `/checkout`. |
+| `EmailCaptureModal.tsx`| Pre-checkout email capture | *(Located in `checkout/`)* Full-screen dark glassmorphism modal with Framer Motion animations. Collects email from phone-only users so they can receive digital receipts. Saves to Firestore via `userService`. |
 
 #### Order Tracking Components (`src/components/orders/`)
 
@@ -202,6 +204,7 @@ Located in `src/services/`.
 | File                        | Purpose                                          | Key Methods                                                                                                                 |
 | --------------------------- | ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------- |
 | `auth.service.ts`           | Firebase Phone Authentication operations         | `sendOtp(phoneNumber, recaptchaVerifier)`, `confirmOtp(confirmationResult, code)`, `getCurrentUser()`, `logout()`, `isAuthenticated()`, `onAuthStateChange()` |
+| `user.service.ts`           | Firebase Firestore user profile management       | `getUserProfile(userId)`, `updateUserEmail(userId, email)`                                                                  |
 | `admin-products.service.ts` | Admin catalogue management (Firestore + Storage) | `getAll()`, `create(data, imageFile?)`, `update(id, data, imageFile?)`, `remove(id)`, `toggleAvailability(id, val)`, `uploadImage(file)` |
 | `products.service.ts`       | Menu product data from Firebase Firestore        | `getProducts(filters)`, `getProduct(id)`, `getBestSellers(limit)`, `getByCategory(category)`                                |
 | `rewards.service.ts`        | Loyalty stamp data from mock data fallback       | `getUserStamps(userId)`, `getAvailableRewards()`                                                                            |
@@ -487,6 +490,13 @@ cp .env.example .env.local
 | `NEXT_PUBLIC_USERS_COLLECTION_ID`        | ✅       | Users collection ID                                         |
 | `NEXT_PUBLIC_PRODUCTS_COLLECTION_ID`     | ✅       | Products collection ID                                      |
 | `NEXT_PUBLIC_ORDERS_COLLECTION_ID`       | ✅       | Orders collection ID                                        |
+| `NEXT_PUBLIC_FIREBASE_API_KEY`           | ✅       | Firebase client API key (required for phone auth)           |
+| `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`       | ✅       | Firebase Auth domain                                        |
+| `NEXT_PUBLIC_FIREBASE_PROJECT_ID`        | ✅       | Firestore database access                                   |
+| `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`    | ✅       | Firebase Storage access (for product images)                |
+| `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID` | ✅     | FCM sender ID                                               |
+| `NEXT_PUBLIC_FIREBASE_APP_ID`            | ✅       | Firebase web app ID                                         |
+| `RESEND_API_KEY`                         | ✅       | Resend API key for sending email receipts                   |
 | `NEXT_PUBLIC_REWARDS_COLLECTION_ID`      | ✅       | Rewards/stamps collection ID                                |
 | `NEXT_PUBLIC_COUPONS_COLLECTION_ID`      | ⬜       | Coupons collection ID                                       |
 | `NEXT_PUBLIC_APPWRITE_STORAGE_BUCKET_ID` | ⬜       | Storage bucket for product images                           |

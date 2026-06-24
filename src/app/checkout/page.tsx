@@ -191,7 +191,7 @@ export default function CheckoutPage() {
           : undefined,
       } : {};
 
-      const orderId = await ordersService.create({
+      const orderData = {
         customerName: formData.fullName,
         customerPhone: formData.phone,
         customerAddress: fullAddressString,
@@ -205,8 +205,8 @@ export default function CheckoutPage() {
         subtotal,
         deliveryCharge: DELIVERY_FEE,
         totalAmount: total,
-        paymentMethod: 'cash_on_delivery',
-        status: 'pending',
+        paymentMethod: 'cash_on_delivery' as const,
+        status: 'pending' as const,
         notes: formData.landmark || '',
         userId: user?.uid || null,
         location: locationState.coords,
@@ -215,7 +215,9 @@ export default function CheckoutPage() {
         containsDessert,
         // scheduling (only set when desserts exist)
         ...schedulingFields,
-      });
+      };
+
+      const orderId = await ordersService.create(orderData);
 
       // Sync order locally (Zustand)
       placeOrder({
@@ -229,6 +231,26 @@ export default function CheckoutPage() {
           ? `Dessert by ${getRelativeDateLabel(dessertSlot.isoDate)}, ${dessertSlot.time}`
           : '25–35 minutes',
       }, orderId);
+
+      // Send Email Receipt if user has an email
+      if (user?.email) {
+        try {
+          const emailOrderPayload = {
+            id: orderId,
+            createdAt: new Date().toISOString(),
+            ...orderData
+          };
+
+          await fetch('/api/email/receipt', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: user.email, order: emailOrderPayload }),
+          });
+        } catch (emailErr) {
+          console.error('Failed to send email receipt:', emailErr);
+          // Non-blocking error
+        }
+      }
 
       clearCart(); // also clears slot + coffeeDeliveryMode
       router.push(`/order-success?id=${orderId}`);
