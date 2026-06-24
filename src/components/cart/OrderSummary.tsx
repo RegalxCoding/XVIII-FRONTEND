@@ -1,10 +1,13 @@
 'use client';
 
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowRight, Calendar, AlertCircle } from 'lucide-react';
 import { useCartStore, DELIVERY_FEE } from '@/store/cart.store';
 import { useAuthStore } from '@/store/auth.store';
+import { userService } from '@/services/user.service';
 import { getRelativeDateLabel } from '@/utils/timeSlots';
+import EmailCaptureModal from '@/components/checkout/EmailCaptureModal';
 
 // ─────────────────────────────────────────
 // OrderSummary — sticky sidebar on desktop
@@ -21,6 +24,12 @@ export default function OrderSummary() {
   const isSlotValid = useCartStore((s) => s.isSlotValid);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
 
+  const user = useAuthStore((s) => s.user);
+  const setUser = useAuthStore((s) => s.setUser);
+
+  const [isCheckingAuth, setIsCheckingAuth] = useState(false);
+  const [showEmailModal, setShowEmailModal] = useState(false);
+
   const subtotal = getSubtotal();
   const total = subtotal + DELIVERY_FEE;
   const itemCount = items.reduce((sum, i) => sum + i.quantity, 0);
@@ -31,8 +40,49 @@ export default function OrderSummary() {
   const needsCoffeeMode = isMixedOrder() && !coffeeDeliveryMode;
   const canCheckout = !isEmpty && !needsSlot && !needsCoffeeMode;
 
-  const handleCheckout = () => {
+  const handleCheckout = async () => {
     if (!canCheckout) return;
+
+    if (!isAuthenticated || !user) {
+      router.push('/login');
+      return;
+    }
+
+    setIsCheckingAuth(true);
+    try {
+      // Check fresh profile
+      const profile = await userService.getUserProfile(user.$id || user.uid);
+      if (profile && profile.email) {
+        // Has email, proceed directly
+        router.push('/checkout');
+      } else {
+        // No email found
+        setShowEmailModal(true);
+      }
+    } catch (err) {
+      console.error(err);
+      // Fallback
+      router.push('/checkout');
+    } finally {
+      setIsCheckingAuth(false);
+    }
+  };
+
+  const handleEmailContinue = async (email: string) => {
+    if (!user) return;
+    try {
+      await userService.updateUserEmail(user.$id || user.uid, email);
+      setUser({ ...user, email });
+      setShowEmailModal(false);
+      router.push('/checkout');
+    } catch (error) {
+      console.error('Failed to save email:', error);
+      throw error;
+    }
+  };
+
+  const handleEmailSkip = () => {
+    setShowEmailModal(false);
     router.push('/checkout');
   };
 
@@ -220,6 +270,13 @@ export default function OrderSummary() {
           Every item chosen with intention. Every order fulfilled with care.
         </p>
       </div>
+
+      {/* ── Email Capture Modal ── */}
+      <EmailCaptureModal
+        isOpen={showEmailModal}
+        onContinue={handleEmailContinue}
+        onSkip={handleEmailSkip}
+      />
     </aside>
   );
 }
