@@ -185,10 +185,10 @@ export default function CheckoutPage() {
         scheduledTimestamp: dessertSlot.scheduledTimestamp,   // canonical
         deliveryDate: dessertSlot.isoDate,                    // derived display
         deliveryTime: dessertSlot.time,                       // derived display
-        // null → undefined: AdminOrder.coffeeDeliveryMode is 'immediate' | 'withDessert' | undefined
-        coffeeDeliveryMode: (containsCoffee && containsDessert && coffeeDeliveryMode != null)
-          ? coffeeDeliveryMode
-          : undefined,
+        // Spread conditionally — Firestore rejects `undefined` values, key must be omitted entirely
+        ...(containsCoffee && containsDessert && coffeeDeliveryMode != null
+          ? { coffeeDeliveryMode }
+          : {}),
       } : {};
 
       const orderData = {
