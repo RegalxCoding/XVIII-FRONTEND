@@ -51,7 +51,7 @@ export default function OrderSummary() {
     setIsCheckingAuth(true);
     try {
       // Check fresh profile
-      const profile = await userService.getUserProfile(user.$id || user.uid);
+      const profile = await userService.getUserProfile(user.uid);
       if (profile && profile.email) {
         // Has email, proceed directly
         router.push('/checkout');
@@ -71,7 +71,7 @@ export default function OrderSummary() {
   const handleEmailContinue = async (email: string) => {
     if (!user) return;
     try {
-      await userService.updateUserEmail(user.$id || user.uid, email);
+      await userService.updateUserEmail(user.uid, email);
       setUser({ ...user, email });
       setShowEmailModal(false);
       router.push('/checkout');

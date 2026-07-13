@@ -12,7 +12,7 @@ interface OrderDetailDrawerProps {
 }
 
 const ALL_STATUSES: AdminOrderStatus[] = [
-  'pending', 'confirmed', 'preparing', 'ready', 'delivered', 'cancelled',
+  'pending', 'confirmed', 'preparing', 'ready', 'out_for_delivery', 'delivered', 'cancelled',
 ];
 
 const PAYMENT_LABELS: Record<string, string> = {

@@ -21,6 +21,7 @@ export type AdminOrderStatus =
   | 'confirmed'
   | 'preparing'
   | 'ready'
+  | 'out_for_delivery'
   | 'delivered'
   | 'cancelled';
 
@@ -49,6 +50,10 @@ export interface AdminOrder {
   createdAt: string;
   userId?: string | null;
   location?: { lat: number; lng: number } | null;
+
+  // ── Delivery verification ──
+  paymentStatus?: 'pending' | 'paid' | 'cash_collected';
+  assignedDriverId?: string;
 
   // ── Auto-derived from items[] at order creation — never set manually ──
   containsCoffee?: boolean;

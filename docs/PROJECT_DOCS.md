@@ -79,6 +79,19 @@ The `src/app/` directory uses the Next.js 15 App Router. Every `page.tsx` is a s
 | `product/[id]/page.tsx` | `/product/:id` | Dynamic product detail page. Reads `params.id` from the URL.                                                                                                        |
 | `orders/[id]/page.tsx`  | `/orders/:id`  | **Order tracking page.** Premium real-time order journey view. Server component that extracts `params.id` and renders `OrderTracker`. Navbar + Footer + ambient background glow orbs. Metadata: "Track Order \| The XVIII Brew Co." |
 
+#### Backend API Routes (Delivery & OTP)
+
+All driver app operations are secured via Next.js backend API routes to prevent drivers from writing to Firestore directly.
+
+| File                    | Route                            | Purpose                                                                                                                                                             |
+| ----------------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `api/delivery/initialize/route.ts`| `/api/delivery/initialize` | Called when an order is created. Pre-generates the OTP and saves its SHA-256 hash to Firestore. The plain OTP is never saved.                                      |
+| `api/delivery/send-otp/route.ts`  | `/api/delivery/send-otp`   | Called by driver app. Verifies GPS proximity (≤ 150m) to customer. Generates a new OTP, updates the hash, and triggers the SMS to the customer's phone.             |
+| `api/delivery/verify-otp/route.ts`| `/api/delivery/verify-otp` | Validates the 6-digit OTP entered by the driver. Compares the hash. On success, marks order as 'delivered' in Firestore. Tracks failed attempts (max 3).            |
+| `api/delivery/resend-otp/route.ts`| `/api/delivery/resend-otp` | Enforces a 60-second cooldown, generates a new OTP, sends the SMS, and resets the attempt counter.                                                                  |
+| `api/delivery/collect-cash/route.ts`| `/api/delivery/collect-cash` | For COD orders, updates the `paymentStatus` to `cash_collected`.                                                                                                    |
+| `api/delivery/status/route.ts`    | `/api/delivery/status`     | Returns sanitized delivery state (e.g. attempts left, cooldowns) to the driver app without exposing the OTP hash.                                                   |
+
 #### Admin Pages
 
 | File                          | Route            | Purpose                                                                                                              |
@@ -269,6 +282,7 @@ Located in `src/types/`. Pure TypeScript interfaces — no runtime code.
 | `product.types.ts` | `Product`, `ProductCategory`, `ProductFilters`                                                                   | Menu product data shape and filter options                           |
 | `order.types.ts`   | `Order`, `OrderItem`, `OrderStatus`, `RewardStamp`, `Reward`                                                     | Customer order lifecycle and rewards programme types                 |
 | `admin.types.ts`   | `AdminProduct`, `AdminProductCategory`, `AdminOrder`, `AdminOrderItem`, `AdminOrderStatus`, `PaymentMethod`, `AdminCredentials` | All types used exclusively in the admin panel. Separate from the customer-facing types. |
+| `delivery.types.ts`| `DeliveryVerification`, `DeliveryVerificationStatus`, `VerificationLogEntry` | Types for the OTP verification flow. Includes the Firestore doc shape (storing only hashes, never plain OTPs) and the sanitized status returned to the driver app. |
 | `order-tracking.types.ts` | `TrackingStep`, `TrackingState`, `TRACKING_STEPS`, `getStepState()` | Customer-facing order journey types. Maps `AdminOrderStatus` to friendly labels/descriptions/icons. `getStepState()` determines if a step is completed, active, or upcoming. |
 
 **Key `admin.types.ts` shapes:**
@@ -381,6 +395,8 @@ Located in `src/lib/`.
 | File          | Purpose                                                                                                            | Exports                      |
 | ------------- | ------------------------------------------------------------------------------------------------------------------ | ---------------------------- |
 | `firebase.ts` | Firebase client SDK singleton config. Handles config, authentication, Firestore Database, and Storage.             | `auth`, `db`, `storage`, `app`, `default app` |
+| `otp.ts`      | Secure OTP utilities for the Next.js backend. Generates 6-digit codes, performs SHA-256 hashing, and calculates Haversine GPS distances for delivery proximity checks. | `generateOtp`, `hashOtp`, `verifyOtp`, `isExpired`, `haversineDistance`, `isWithinProximity` |
+| `sms.ts`      | Pluggable interface for dispatching SMS messages. Currently logs OTPs to the console for development. Ready to be swapped with Twilio/MSG91 for production. | `SmsService`, `ConsoleSmsService`, `sendDeliveryOtp` |
 
 ---
 

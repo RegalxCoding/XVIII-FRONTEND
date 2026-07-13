@@ -1,0 +1,167 @@
+// ─────────────────────────────────────────
+// POST /api/delivery/resend-otp
+// Generates a NEW OTP, invalidates the previous one.
+// Requires GPS proximity re-check and 60s cooldown.
+// ─────────────────────────────────────────
+
+import { NextRequest, NextResponse } from 'next/server';
+import {
+  collection, query, where, getDocs, doc, updateDoc,
+} from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { generateOtp, hashOtp, isWithinProximity, haversineDistance } from '@/lib/otp';
+import { smsService } from '@/lib/sms';
+import {
+  OTP_EXPIRY_MINUTES,
+  OTP_RESEND_COOLDOWN_SECONDS,
+  DELIVERY_PROXIMITY_METERS,
+} from '@/constants';
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { orderId, driverLocation } = body;
+
+    // ── Input validation ──
+    if (!orderId || typeof orderId !== 'string') {
+      return NextResponse.json(
+        { success: false, code: 'INVALID_INPUT', message: 'orderId is required' },
+        { status: 400 }
+      );
+    }
+
+    if (
+      !driverLocation ||
+      typeof driverLocation.lat !== 'number' ||
+      typeof driverLocation.lng !== 'number'
+    ) {
+      return NextResponse.json(
+        { success: false, code: 'INVALID_INPUT', message: 'Valid driverLocation { lat, lng } is required' },
+        { status: 400 }
+      );
+    }
+
+    // ── Fetch order for GPS check ──
+    const ordersCol = collection(db, 'orders');
+    const orderQuery = query(ordersCol, where('id', '==', orderId));
+    const orderSnap = await getDocs(orderQuery);
+
+    if (orderSnap.empty) {
+      return NextResponse.json(
+        { success: false, code: 'NOT_FOUND', message: 'Order not found' },
+        { status: 404 }
+      );
+    }
+
+    const orderData = orderSnap.docs[0].data();
+
+    // ── Verify order status ──
+    if (orderData.status !== 'out_for_delivery') {
+      return NextResponse.json(
+        { success: false, code: 'WRONG_STATUS', message: `Order status is "${orderData.status}", expected "out_for_delivery"` },
+        { status: 403 }
+      );
+    }
+
+    // ── GPS proximity check ──
+    const customerLocation = orderData.location;
+    if (customerLocation && typeof customerLocation.lat === 'number') {
+      if (!isWithinProximity(driverLocation, customerLocation, DELIVERY_PROXIMITY_METERS)) {
+        const distance = Math.round(haversineDistance(driverLocation, customerLocation));
+        return NextResponse.json(
+          {
+            success: false,
+            code: 'GPS_TOO_FAR',
+            message: `You are ${distance}m away. Move within ${DELIVERY_PROXIMITY_METERS}m to resend OTP.`,
+            distance,
+          },
+          { status: 403 }
+        );
+      }
+    }
+
+    // ── Fetch verification record ──
+    const verificationsCol = collection(db, 'delivery_verifications');
+    const verQuery = query(verificationsCol, where('orderId', '==', orderId));
+    const verSnap = await getDocs(verQuery);
+
+    if (verSnap.empty) {
+      return NextResponse.json(
+        { success: false, code: 'NOT_FOUND', message: 'Verification record not found' },
+        { status: 404 }
+      );
+    }
+
+    const verDoc = verSnap.docs[0];
+    const verData = verDoc.data();
+    const verDocRef = doc(db, 'delivery_verifications', verDoc.id);
+
+    // ── Check if already verified ──
+    if (verData.verified) {
+      return NextResponse.json(
+        { success: false, code: 'ALREADY_VERIFIED', message: 'OTP already verified for this order' },
+        { status: 403 }
+      );
+    }
+
+    // ── Check resend cooldown ──
+    if (verData.lastSentAt) {
+      const lastSent = new Date(verData.lastSentAt).getTime();
+      const elapsed = (Date.now() - lastSent) / 1000;
+      const remaining = Math.ceil(OTP_RESEND_COOLDOWN_SECONDS - elapsed);
+
+      if (remaining > 0) {
+        return NextResponse.json(
+          {
+            success: false,
+            code: 'RESEND_COOLDOWN',
+            message: `Please wait ${remaining}s before resending.`,
+            cooldownRemaining: remaining,
+          },
+          { status: 429 }
+        );
+      }
+    }
+
+    // ── Generate NEW OTP, invalidate previous ──
+    const newOtp = generateOtp();
+    const newHash = hashOtp(newOtp);
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + OTP_EXPIRY_MINUTES * 60 * 1000);
+
+    await updateDoc(verDocRef, {
+      otpHash: newHash,
+      generatedAt: now.toISOString(),
+      expiresAt: expiresAt.toISOString(),
+      attempts: 0,
+      lastSentAt: now.toISOString(),
+      resendCount: (verData.resendCount || 0) + 1,
+    });
+
+    // ── Send via SMS ──
+    const customerPhone = verData.customerPhone || orderData.customerPhone;
+    const smsResult = await smsService.sendOtp(customerPhone, newOtp);
+
+    if (!smsResult.success) {
+      console.error(`[Delivery] Resend SMS failed for order ${orderId}:`, smsResult.message);
+      return NextResponse.json(
+        { success: false, code: 'SMS_FAILED', message: 'Failed to send OTP. Please try again.' },
+        { status: 500 }
+      );
+    }
+
+    console.log(`[Delivery] OTP resent for order ${orderId} (resend #${(verData.resendCount || 0) + 1})`);
+
+    return NextResponse.json({
+      success: true,
+      message: 'New OTP sent to customer',
+      expiresAt: expiresAt.toISOString(),
+    });
+  } catch (error) {
+    console.error('[Delivery] Resend OTP error:', error);
+    return NextResponse.json(
+      { success: false, code: 'SERVER_ERROR', message: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}

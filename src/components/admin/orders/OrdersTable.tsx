@@ -27,6 +27,7 @@ const STATUS_FILTERS: { key: FilterStatus; label: string }[] = [
   { key: 'confirmed', label: 'Confirmed' },
   { key: 'preparing', label: 'Preparing' },
   { key: 'ready', label: 'Ready' },
+  { key: 'out_for_delivery', label: 'Out For Delivery' },
   { key: 'delivered', label: 'Delivered' },
   { key: 'cancelled', label: 'Cancelled' },
 ];
@@ -45,6 +46,7 @@ const STATUS_DOT_COLORS: Record<FilterStatus, string> = {
   confirmed: '#60a5fa',
   preparing: '#c084fc',
   ready: '#2dd4bf',
+  out_for_delivery: '#818cf8',
   delivered: '#4ade80',
   cancelled: '#f87171',
 };

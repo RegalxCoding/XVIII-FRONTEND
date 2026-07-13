@@ -23,6 +23,8 @@ export function mapAdminStatusToCustomerStatus(status: string): string {
     case 'preparing':
       return 'Preparing ☕';
     case 'ready':
+      return 'Ready for Pickup 📦';
+    case 'out_for_delivery':
       return 'Out for Delivery 🚚';
     case 'delivered':
       return 'Delivered ✅';
