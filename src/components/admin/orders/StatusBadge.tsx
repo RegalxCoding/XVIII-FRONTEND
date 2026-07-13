@@ -11,12 +11,13 @@ const STATUS_CONFIG: Record<
   AdminOrderStatus,
   { label: string; color: string; bg: string; dot: string }
 > = {
-  pending:   { label: 'Pending',   color: '#fb923c', bg: 'rgba(251,146,60,0.12)',   dot: '#fb923c' },
-  confirmed: { label: 'Confirmed', color: '#60a5fa', bg: 'rgba(96,165,250,0.12)',   dot: '#60a5fa' },
-  preparing: { label: 'Preparing', color: '#c084fc', bg: 'rgba(192,132,252,0.12)',  dot: '#c084fc' },
-  ready:     { label: 'Ready',     color: '#2dd4bf', bg: 'rgba(45,212,191,0.12)',   dot: '#2dd4bf' },
-  delivered: { label: 'Delivered', color: '#4ade80', bg: 'rgba(74,222,128,0.12)',   dot: '#4ade80' },
-  cancelled: { label: 'Cancelled', color: '#f87171', bg: 'rgba(248,113,113,0.12)', dot: '#f87171' },
+  pending:          { label: 'Pending',          color: '#fb923c', bg: 'rgba(251,146,60,0.12)',   dot: '#fb923c' },
+  confirmed:        { label: 'Confirmed',        color: '#60a5fa', bg: 'rgba(96,165,250,0.12)',   dot: '#60a5fa' },
+  preparing:        { label: 'Preparing',        color: '#c084fc', bg: 'rgba(192,132,252,0.12)',  dot: '#c084fc' },
+  ready:            { label: 'Ready',            color: '#2dd4bf', bg: 'rgba(45,212,191,0.12)',   dot: '#2dd4bf' },
+  out_for_delivery: { label: 'Out For Delivery', color: '#818cf8', bg: 'rgba(129,140,248,0.12)',  dot: '#818cf8' },
+  delivered:        { label: 'Delivered',        color: '#4ade80', bg: 'rgba(74,222,128,0.12)',   dot: '#4ade80' },
+  cancelled:        { label: 'Cancelled',        color: '#f87171', bg: 'rgba(248,113,113,0.12)', dot: '#f87171' },
 };
 
 export default function StatusBadge({ status, size = 'md' }: StatusBadgeProps) {

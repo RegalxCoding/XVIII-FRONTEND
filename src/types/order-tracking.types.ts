@@ -45,9 +45,15 @@ export const TRACKING_STEPS: TrackingStep[] = [
   },
   {
     status: 'ready',
-    label: 'Ready / Out For Delivery',
-    description: 'Your order is packed and on its way.',
+    label: 'Ready for Pickup',
+    description: 'Your order is packed and ready.',
     icon: '📦',
+  },
+  {
+    status: 'out_for_delivery',
+    label: 'Out For Delivery',
+    description: 'Your order is on its way to you.',
+    icon: '🚚',
   },
   {
     status: 'delivered',
@@ -61,7 +67,7 @@ export const TRACKING_STEPS: TrackingStep[] = [
  * Determine the visual state of a tracking step given the current order status.
  *
  * The status progression order is:
- *   pending → confirmed → preparing → ready → delivered
+ *   pending → confirmed → preparing → ready → out_for_delivery → delivered
  *
  * Steps before the current status are "completed",
  * the current status step is "active",
@@ -71,7 +77,7 @@ export function getStepState(
   stepStatus: AdminOrderStatus,
   currentStatus: AdminOrderStatus
 ): TrackingState {
-  const order: AdminOrderStatus[] = ['pending', 'confirmed', 'preparing', 'ready', 'delivered'];
+  const order: AdminOrderStatus[] = ['pending', 'confirmed', 'preparing', 'ready', 'out_for_delivery', 'delivered'];
   const stepIndex = order.indexOf(stepStatus);
   const currentIndex = order.indexOf(currentStatus);
 

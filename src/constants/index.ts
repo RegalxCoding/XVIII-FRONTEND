@@ -20,6 +20,26 @@ export const DESSERT_MIN_ADVANCE_HOURS = 6;
 export const BUSINESS_TIMEZONE = 'Asia/Kolkata';
 
 // ─────────────────────────────────────────
+// Delivery Verification Config
+// OTP security parameters — change here, not in API routes.
+// ─────────────────────────────────────────
+
+/** Number of digits in the delivery OTP */
+export const OTP_LENGTH = 6;
+
+/** Minutes before an OTP expires */
+export const OTP_EXPIRY_MINUTES = 5;
+
+/** Maximum wrong OTP attempts before lockout */
+export const OTP_MAX_ATTEMPTS = 3;
+
+/** Seconds between OTP resend requests */
+export const OTP_RESEND_COOLDOWN_SECONDS = 60;
+
+/** Maximum distance (meters) driver must be from customer to send OTP */
+export const DELIVERY_PROXIMITY_METERS = 150;
+
+// ─────────────────────────────────────────
 // Brand Constants
 // ─────────────────────────────────────────
 
