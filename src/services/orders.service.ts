@@ -66,11 +66,10 @@ export const ordersService = {
     
     if (snapshot.empty) return null;
     
-    const doc = snapshot.docs[0];
-    const data = doc.data();
+    const docData = snapshot.docs[0].data();
     return {
-      ...data,
-      id: data.id // Use custom brand order ID
+      ...docData,
+      id: docData.id // Use custom brand order ID
     } as AdminOrder;
   },
 
@@ -172,6 +171,91 @@ export const ordersService = {
       callback(orders);
     }, (error) => {
       console.error("Error subscribing to user orders:", error);
+    });
+  },
+
+  // ─────────────────────────────────────────
+  // DRIVER-SPECIFIC METHODS
+  // ─────────────────────────────────────────
+
+  /**
+   * Subscribe to orders that are 'ready' for pickup (the driver queue).
+   */
+  subscribeDriverQueue(callback: (orders: AdminOrder[]) => void) {
+    const ordersCol = collection(db, 'orders');
+    const q = query(ordersCol, where('status', '==', 'ready'));
+    
+    return onSnapshot(q, (snapshot) => {
+      const orders = snapshot.docs.map(doc => doc.data() as AdminOrder);
+      orders.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+      callback(orders);
+    });
+  },
+
+  /**
+   * Subscribe to active orders assigned to a specific driver.
+   */
+  subscribeDriverActive(driverId: string, callback: (orders: AdminOrder[]) => void) {
+    const ordersCol = collection(db, 'orders');
+    const q = query(
+      ordersCol, 
+      where('assignedDriverId', '==', driverId),
+      where('status', '==', 'out_for_delivery')
+    );
+    
+    return onSnapshot(q, (snapshot) => {
+      const orders = snapshot.docs.map(doc => doc.data() as AdminOrder);
+      callback(orders);
+    });
+  },
+
+  /**
+   * Subscribe to a single order by ID (for active delivery view).
+   */
+  subscribeOrderById(id: string, callback: (order: AdminOrder | null) => void) {
+    const ordersCol = collection(db, 'orders');
+    const q = query(ordersCol, where('id', '==', id));
+    
+    return onSnapshot(q, (snapshot) => {
+      if (snapshot.empty) {
+        callback(null);
+      } else {
+        callback(snapshot.docs[0].data() as AdminOrder);
+      }
+    });
+  },
+
+  /**
+   * Driver assigns an order to themselves and updates status to 'out_for_delivery'
+   */
+  async assignToDriver(orderId: string, driverId: string): Promise<void> {
+    const ordersCol = collection(db, 'orders');
+    const q = query(ordersCol, where('id', '==', orderId));
+    const snapshot = await getDocs(q);
+    
+    if (snapshot.empty) throw new Error("Order not found");
+    
+    const docRef = doc(db, 'orders', snapshot.docs[0].id);
+    await updateDoc(docRef, { 
+      assignedDriverId: driverId,
+      status: 'out_for_delivery' 
+    });
+  },
+
+  /**
+   * Driver completes a delivery.
+   */
+  async markDelivered(orderId: string, paymentStatus: 'paid' | 'cash_collected'): Promise<void> {
+    const ordersCol = collection(db, 'orders');
+    const q = query(ordersCol, where('id', '==', orderId));
+    const snapshot = await getDocs(q);
+    
+    if (snapshot.empty) throw new Error("Order not found");
+    
+    const docRef = doc(db, 'orders', snapshot.docs[0].id);
+    await updateDoc(docRef, { 
+      status: 'delivered',
+      paymentStatus
     });
   }
 };
