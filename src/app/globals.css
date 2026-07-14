@@ -203,3 +203,51 @@
   background: linear-gradient(to bottom, transparent 40%, rgba(21, 17, 13, 0.9) 100%);
   pointer-events: none;
 }
+
+/* ─────────────────────────────────────────
+   Coffee Steam — About Hero
+   Very slow, very subtle. Real steam feel.
+───────────────────────────────────────── */
+@keyframes steamWisp1 {
+  0%   { transform: translateY(0)    translateX(0px)  scaleX(1);    opacity: 0; }
+  12%  { opacity: 0.35; }
+  50%  { transform: translateY(-52px) translateX(7px)  scaleX(1.25); opacity: 0.18; }
+  88%  { opacity: 0.05; }
+  100% { transform: translateY(-90px) translateX(-3px) scaleX(0.75); opacity: 0; }
+}
+
+@keyframes steamWisp2 {
+  0%   { transform: translateY(0)    translateX(0px)   scaleX(1);    opacity: 0; }
+  10%  { opacity: 0.28; }
+  45%  { transform: translateY(-45px) translateX(-9px)  scaleX(1.18); opacity: 0.14; }
+  85%  { opacity: 0.04; }
+  100% { transform: translateY(-80px) translateX(5px)  scaleX(0.85); opacity: 0; }
+}
+
+@keyframes steamWisp3 {
+  0%   { transform: translateY(0)    translateX(0px)   scaleX(1);    opacity: 0; }
+  15%  { opacity: 0.22; }
+  55%  { transform: translateY(-60px) translateX(5px)  scaleX(1.3);  opacity: 0.10; }
+  90%  { opacity: 0.03; }
+  100% { transform: translateY(-95px) translateX(-6px) scaleX(0.7);  opacity: 0; }
+}
+
+.steam-wisp-1 {
+  animation: steamWisp1 11s ease-in-out infinite;
+}
+.steam-wisp-2 {
+  animation: steamWisp2 13s ease-in-out infinite;
+  animation-delay: 3.5s;
+}
+.steam-wisp-3 {
+  animation: steamWisp3 15s ease-in-out infinite;
+  animation-delay: 7s;
+}
+.steam-wisp-4 {
+  animation: steamWisp1 12s ease-in-out infinite;
+  animation-delay: 1.8s;
+}
+.steam-wisp-5 {
+  animation: steamWisp2 14s ease-in-out infinite;
+  animation-delay: 5.5s;
+}
