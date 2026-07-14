@@ -219,6 +219,17 @@ export default function CheckoutPage() {
 
       const orderId = await ordersService.create(orderData);
 
+      // Initialize delivery verification (OTP generation)
+      try {
+        await fetch('/api/delivery/initialize', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ orderId, customerPhone: formData.phone }),
+        });
+      } catch (err) {
+        console.error('Failed to initialize delivery verification:', err);
+      }
+
       // Sync order locally (Zustand)
       placeOrder({
         items,

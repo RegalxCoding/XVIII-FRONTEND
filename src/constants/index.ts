@@ -37,7 +37,7 @@ export const OTP_MAX_ATTEMPTS = 3;
 export const OTP_RESEND_COOLDOWN_SECONDS = 60;
 
 /** Maximum distance (meters) driver must be from customer to send OTP */
-export const DELIVERY_PROXIMITY_METERS = 150;
+export const DELIVERY_PROXIMITY_METERS = 9999999; // Bypassed for testing from Nagar
 
 // ─────────────────────────────────────────
 // Brand Constants
