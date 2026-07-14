@@ -138,65 +138,43 @@ export default function AboutHero() {
       />
 
       {/* ────────────────────────────────────────
-          CUP — LAPTOP (1024–1279px)
-          lg:block xl:hidden
+          BEANS — LAPTOP (1024–1279px)
       ──────────────────────────────────────── */}
       <motion.div
         style={{ y: cupYDesktop, scale: cupScaleDesktop }}
-        className="hidden lg:block xl:hidden absolute z-[4] pointer-events-none top-[8%] right-[-10%] w-[56vw]"
+        className="hidden lg:block xl:hidden absolute z-[40] pointer-events-none top-[-5%] right-[-10%] w-[90vw] mix-blend-screen"
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src="/images/hero-tilted-cup.png"
-          alt=""
-          className="w-full h-auto object-contain"
-          style={{ filter: dropShadow }}
-        />
-        {/* Steam above cup mouth */}
-        <motion.div
-          className="absolute pointer-events-none"
-          style={{
-            opacity: steamOpacity,
-            y: steamY,
-            bottom: '57%',
-            left: '25%',
-            width: '100px',
-            height: '100px',
+          src="/images/about-hero-beans.png"
+          alt="Cascading coffee beans"
+          className="w-full h-auto object-contain opacity-95"
+          style={{ 
+            filter: dropShadow,
+            WebkitMaskImage: 'radial-gradient(ellipse 80% 80% at 50% 50%, black 40%, transparent 70%)',
+            maskImage: 'radial-gradient(ellipse 80% 80% at 50% 50%, black 40%, transparent 70%)'
           }}
-        >
-          <SteamWisps />
-        </motion.div>
+        />
       </motion.div>
 
       {/* ────────────────────────────────────────
-          CUP — DESKTOP (≥1280px)
-          xl:block
+          BEANS — DESKTOP (≥1280px)
       ──────────────────────────────────────── */}
       <motion.div
         style={{ y: cupYDesktop, scale: cupScaleDesktop }}
-        className="hidden xl:block absolute z-[4] pointer-events-none top-[3%] right-[-5%] w-[50vw]"
+        className="hidden xl:block absolute z-[40] pointer-events-none top-[-10%] right-[-5%] w-[80vw] mix-blend-screen"
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src="/images/hero-tilted-cup.png"
-          alt="Premium espresso — The XVIII Brew Co."
-          className="w-full h-auto object-contain"
-          style={{ filter: dropShadow }}
-        />
-        {/* Steam */}
-        <motion.div
-          style={{
-            opacity: steamOpacity,
-            y: steamY,
-            bottom: '58%',
-            left: '28%',
-            width: '120px',
-            height: '120px',
+          src="/images/about-hero-beans.png"
+          alt="Cascading coffee beans"
+          className="w-full h-auto object-contain opacity-95"
+          style={{ 
+            filter: dropShadow,
+            WebkitMaskImage: 'radial-gradient(ellipse 75% 75% at 50% 50%, black 45%, transparent 75%)',
+            maskImage: 'radial-gradient(ellipse 75% 75% at 50% 50%, black 45%, transparent 75%)'
           }}
-          className="absolute pointer-events-none"
-        >
-          <SteamWisps />
-        </motion.div>
+        />
       </motion.div>
 
       {/* ────────────────────────────────────────
@@ -318,99 +296,89 @@ export default function AboutHero() {
       ════════════════════════════════════════ */}
       <div className="relative z-[30] flex flex-col lg:min-h-screen">
 
-        {/* ── TEXT BLOCK ── */}
+        {/* ── MASSIVE TEXT BLOCK (MATCHING MOCKUP) ── */}
         <motion.div
           style={{ y: headlineY, opacity: headlineOpacity }}
           className={[
-            'container-brand',
-            /* Mobile/Tablet: top padding for navbar, bottom space before cup */
-            'pt-28 sm:pt-32 pb-4 sm:pb-6 md:pb-8',
-            /* Laptop/Desktop: push to bottom */
-            'lg:mt-auto lg:pb-24 xl:pb-28',
+            'w-full px-4 sm:px-8 md:px-12 lg:px-20',
+            /* Mobile/Tablet: top padding for navbar, bottom space */
+            'pt-32 sm:pt-40 pb-12',
+            /* Laptop/Desktop: push to center/bottom */
+            'lg:mt-auto lg:pb-32',
           ].join(' ')}
         >
-          {/* Eyebrow */}
+          {/* ── HEADING ── */}
           <motion.div
-            {...fadeUp(0.2)}
-            className="flex items-center gap-3 sm:gap-4 mb-5 sm:mb-6 lg:mb-8"
-          >
-            <div className="w-7 sm:w-9 lg:w-10 h-px bg-[#B8956A]" />
-            <span
-              className="text-[#B8956A] text-[9px] sm:text-[10px] tracking-[0.38em] sm:tracking-[0.42em] uppercase"
-              style={{ fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif' }}
-            >
-              Our Story
-            </span>
-          </motion.div>
-
-          {/* ── HEADING
-              Mobile  : clamp(2.5rem→3rem), max-w to ~8 words / line
-              Tablet  : clamp(3rem→4rem)
-              Laptop  : clamp(4rem→6rem)
-              Desktop : clamp(5rem→8rem)
-          ── */}
-          <motion.h1
             {...fadeUp(0.35)}
-            className={[
-              'text-[#EDE3D0] leading-[0.9] tracking-tight',
-              /* width constraints per breakpoint */
-              'max-w-[82vw] sm:max-w-[65vw] md:max-w-[52vw] lg:max-w-xl xl:max-w-3xl',
-              'mb-5 sm:mb-7 md:mb-8 lg:mb-10',
-            ].join(' ')}
+            className="text-[#EDE3D0] leading-[0.85] tracking-tight flex flex-col w-full"
             style={{
               fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif',
-              /* Four distinct size tiers */
-              fontSize: 'clamp(2.5rem, 8.5vw, 8rem)',
+              /* Massive size tiers */
+              fontSize: 'clamp(4rem, 15.5vw, 16rem)',
               fontWeight: 700,
             }}
           >
-            Every Cup{' '}
-            <span style={{ fontFamily: 'Georgia, serif', color: '#B8956A' }}>
-              Has A
-            </span>
-            <br />
-            Reason.
-          </motion.h1>
+            {/* Top Line */}
+            <h1 className="w-full">Every Cup</h1>
 
-          {/* ── PARAGRAPH
-              Mobile  : max-w ~26ch, smaller font
-              Tablet  : max-w ~32ch
-              Desktop : max-w md (standard)
-          ── */}
-          <motion.p
-            {...fadeUp(0.55)}
-            className="text-[#EDE3D0]/50 leading-[1.85] max-w-[26ch] sm:max-w-[32ch] md:max-w-[36ch] lg:max-w-sm xl:max-w-md"
-            style={{
-              fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif',
-              fontSize: 'clamp(0.8rem, 1.2vw, 1rem)',
-            }}
-          >
-            The XVIII Brew Co. wasn&apos;t created to serve coffee quickly.
-            It was created to make every cup worth waiting for.
-            Coffee and desserts prepared with patience, precision and intention.
-          </motion.p>
+            {/* Bottom Section (Paragraph on left, text on right) */}
+            <div className="flex flex-col-reverse md:flex-row w-full justify-between items-start mt-4 md:mt-[-2vw]">
+              
+              {/* Left Column (Eyebrow + Paragraph) */}
+              <div className="w-full md:w-[25vw] max-w-[320px] mt-12 md:mt-[10vw] flex flex-col gap-6 md:gap-8 z-[50]">
+                {/* Eyebrow */}
+                <motion.div
+                  {...fadeUp(0.5)}
+                  className="flex items-center gap-4"
+                >
+                  <div className="w-10 h-px bg-[#B8956A]" />
+                  <span
+                    className="text-[#B8956A] text-[10px] tracking-[0.42em] uppercase leading-normal"
+                    style={{ fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif' }}
+                  >
+                    Our Story
+                  </span>
+                </motion.div>
 
-          {/* ── BOTTOM ANIMATED RULE ── */}
-          <motion.div
-            initial={{ opacity: 0, scaleX: 0 }}
-            animate={{ opacity: 1, scaleX: 1 }}
-            transition={{ duration: 1.4, delay: 0.9, ease }}
-            className="mt-8 sm:mt-10 lg:mt-12 h-px bg-gradient-to-r from-[#B8956A]/40 via-[#B8956A]/12 to-transparent origin-left max-w-[80vw] sm:max-w-sm md:max-w-md lg:max-w-none"
-          />
+                {/* Paragraph */}
+                <motion.p
+                  {...fadeUp(0.65)}
+                  className="text-[#EDE3D0]/60 leading-[1.85]"
+                  style={{
+                    fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif',
+                    fontSize: 'clamp(0.85rem, 1.2vw, 1.1rem)',
+                    fontWeight: 400,
+                    letterSpacing: 'normal',
+                  }}
+                >
+                  The XVIII Brew Co. wasn&apos;t created to serve coffee quickly.
+                  It was created to make every cup worth waiting for.
+                  Coffee and desserts prepared with patience, precision and intention.
+                </motion.p>
+              </div>
+
+              {/* Right Column (Has A Reason) */}
+              <div className="flex flex-col md:ml-auto">
+                <span style={{ fontFamily: 'Georgia, serif', color: '#B8956A' }}>
+                  Has A
+                </span>
+                <span>
+                  Reason.
+                </span>
+              </div>
+            </div>
+          </motion.div>
         </motion.div>
 
         {/* ════════════════════════════════════════
-            CUP — MOBILE & TABLET (hidden lg+)
-            In normal document flow, BELOW the text.
-            Cup sits at the bottom of the section
-            with right-aligned placement + glow.
+            BEANS — MOBILE & TABLET (hidden lg+)
         ════════════════════════════════════════ */}
         <motion.div
           style={{ y: cupYMobile }}
-          className="lg:hidden flex justify-end items-end mt-4 sm:mt-6 md:mt-8 overflow-visible"
+          className="lg:hidden absolute z-[40] flex justify-center items-center inset-0 pointer-events-none overflow-hidden mix-blend-screen"
         >
-          <div className="relative">
-            {/* Ambient glow behind cup */}
+          <div className="relative w-full max-w-[800px] flex justify-center translate-y-[10%]">
+            {/* Ambient glow behind beans */}
             <div
               className="absolute inset-0 pointer-events-none scale-125"
               style={{
@@ -419,37 +387,18 @@ export default function AboutHero() {
               }}
             />
 
-            {/* ── CUP IMAGE
-                Mobile  : 88vw, bleeds slightly off right edge → cinematic feel
-                Tablet  : 64vw, max 420px
-                md      : 52vw, max 480px
-            ── */}
+            {/* ── BEANS IMAGE ── */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src="/images/hero-tilted-cup.png"
-              alt="Premium espresso — The XVIII Brew Co."
-              className="relative block
-                w-[88vw] max-w-none
-                sm:w-[64vw] sm:max-w-[420px]
-                md:w-[52vw] md:max-w-[480px]
-                mr-[-6vw] sm:mr-[-4vw] md:mr-[-3vw]"
-              style={{ filter: dropShadow }}
-            />
-
-            {/* Steam — anchored above cup mouth on mobile */}
-            <motion.div
-              className="absolute pointer-events-none"
-              style={{
-                opacity: steamOpacity,
-                y: steamY,
-                bottom: '58%',
-                left: '22%',
-                width: '80px',
-                height: '80px',
+              src="/images/about-hero-beans.png"
+              alt="Cascading coffee beans"
+              className="relative block w-[140vw] max-w-none sm:w-[100vw] object-contain opacity-95"
+              style={{ 
+                filter: dropShadow,
+                WebkitMaskImage: 'radial-gradient(ellipse 70% 70% at 50% 50%, black 40%, transparent 75%)',
+                maskImage: 'radial-gradient(ellipse 70% 70% at 50% 50%, black 40%, transparent 75%)'
               }}
-            >
-              <SteamWisps />
-            </motion.div>
+            />
           </div>
         </motion.div>
 

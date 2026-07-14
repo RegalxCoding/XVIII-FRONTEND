@@ -1,0 +1,16 @@
+{
+  "name": "XVIII Driver",
+  "short_name": "Driver",
+  "description": "Delivery Partner App for The XVIII Brew Co.",
+  "start_url": "/driver/login",
+  "display": "standalone",
+  "background_color": "#0e0b08",
+  "theme_color": "#0e0b08",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ]
+}
