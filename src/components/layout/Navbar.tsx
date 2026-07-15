@@ -137,21 +137,36 @@ export default function Navbar() {
 
             {/* Sign In / Sign Out CTA — desktop only */}
             {isAuthenticated ? (
-              <button
-                onClick={() => logout()}
-                id="navbar-auth-btn"
-                className="
-                  hidden lg:inline-flex items-center
-                  border border-[#B8956A]/30 text-[#B8956A]
-                  px-5 py-2 text-xs tracking-[0.2em] uppercase font-bold
-                  transition-all duration-300
-                  hover:bg-[#B8956A]/10 hover:border-[#B8956A]
-                  active:scale-95 cursor-pointer
-                "
-                style={{ fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif' }}
-              >
-                Sign Out
-              </button>
+              <>
+                <Link
+                  href="/my-orders"
+                  id="navbar-my-orders-btn"
+                  className="
+                    hidden lg:inline-flex items-center
+                    text-[#EDE3D0]/70 hover:text-[#EDE3D0]
+                    text-xs tracking-[0.2em] uppercase font-bold
+                    transition-all duration-300
+                  "
+                  style={{ fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif' }}
+                >
+                  My Orders
+                </Link>
+                <button
+                  onClick={() => logout()}
+                  id="navbar-auth-btn"
+                  className="
+                    hidden lg:inline-flex items-center
+                    border border-[#B8956A]/30 text-[#B8956A]
+                    px-5 py-2 text-xs tracking-[0.2em] uppercase font-bold
+                    transition-all duration-300
+                    hover:bg-[#B8956A]/10 hover:border-[#B8956A]
+                    active:scale-95 cursor-pointer
+                  "
+                  style={{ fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif' }}
+                >
+                  Sign Out
+                </button>
+              </>
             ) : (
               <Link
                 href="/login"
@@ -282,22 +297,37 @@ export default function Navbar() {
                 </div>
 
                 {isAuthenticated ? (
-                  <button
-                    onClick={() => {
-                      logout();
-                      setIsMobileOpen(false);
-                    }}
-                    className="
-                      w-full inline-flex items-center justify-center gap-2
-                      border border-[#B8956A]/30 text-[#EDE3D0]/70
-                      py-3.5 text-xs tracking-[0.25em] uppercase font-medium
-                      hover:border-[#B8956A] hover:text-[#EDE3D0] transition-colors duration-300
-                      cursor-pointer
-                    "
-                    style={{ fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif' }}
-                  >
-                    Sign Out
-                  </button>
+                  <>
+                    <Link
+                      href="/my-orders"
+                      onClick={() => setIsMobileOpen(false)}
+                      className="
+                        w-full inline-flex items-center justify-center gap-2
+                        border border-[#B8956A]/30 text-[#EDE3D0]/70
+                        py-3.5 text-xs tracking-[0.25em] uppercase font-medium
+                        hover:border-[#B8956A] hover:text-[#EDE3D0] transition-colors duration-300
+                      "
+                      style={{ fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif' }}
+                    >
+                      My Orders
+                    </Link>
+                    <button
+                      onClick={() => {
+                        logout();
+                        setIsMobileOpen(false);
+                      }}
+                      className="
+                        w-full inline-flex items-center justify-center gap-2
+                        border border-[#B8956A]/30 text-[#EDE3D0]/70
+                        py-3.5 text-xs tracking-[0.25em] uppercase font-medium
+                        hover:border-[#B8956A] hover:text-[#EDE3D0] transition-colors duration-300
+                        cursor-pointer
+                      "
+                      style={{ fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif' }}
+                    >
+                      Sign Out
+                    </button>
+                  </>
                 ) : (
                   <Link
                     href="/login"

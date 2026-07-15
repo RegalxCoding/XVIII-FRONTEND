@@ -1,7 +1,7 @@
 # The XVIII Brew Co. — Project Documentation
 
-> **Last Updated:** 14 July 2026  
-> **Stack:** Next.js 16 · TypeScript · Tailwind CSS v4 · Framer Motion · Firebase Auth  
+> **Last Updated:** 15 July 2026  
+> **Stack:** Next.js 16 · TypeScript · Tailwind CSS v4 · Framer Motion · Firebase Auth + Firestore  
 > **Author:** XVIII Brew Co. Development Team
 
 ---
@@ -74,7 +74,8 @@ The `src/app/` directory uses the Next.js 15 App Router. Every `page.tsx` is a s
 | `about/page.tsx`        | `/about`       | **Brand story page.** Fully built. Assembles 6 section components: `AboutHero` → `WhyXVIII` → `WhatWeBelieve` → `OurPromise` → `FounderNote` → `AboutCTA`. SEO metadata included (`Our Story \| The XVIII Brew Co.`). |
 | `contact/page.tsx`      | `/contact`     | **Contact & Feedback page.** Fully built. Assembles 5 custom components: `ContactHero` → `ContactWays` → `BusinessEnquiries` → `FeedbackForm` → `ContactFAQ`, ending with the global `FinalCTASection`. |
 | `rewards/page.tsx`      | `/rewards`     | Loyalty programme page (scaffold)                                                                                                                                   |
-| `login/page.tsx`        | `/login`       | Customer login page (scaffold). Cart checkout redirects here when user is not logged in.                                                                            |
+| `login/page.tsx`        | `/login`       | Customer login page (scaffold). Cart checkout redirects here when user is not logged in. Also used as the auth-gate redirect target from `FeedbackForm` — supports `?redirect=/contact` query param.  |
+| `my-orders/page.tsx`    | `/my-orders`   | **My Orders page.** Premium two-column layout (70/30 desktop, stacked mobile). Left: "Current Order" card with `OrderProgressTimeline`, order details (items, total, address, payment), Estimated Delivery Time, Track Live and Reorder buttons. Right: compact "Previous Orders" list with status badges, clickable to `/orders/:id`. Auth-gated — redirects to `/login` if not authenticated. Orders fetched in real-time via `ordersService.subscribeByUserId()`, sorted newest-first. Active/previous split: only the single latest non-delivered, non-cancelled order is shown as active. |
 | `api/email/receipt/route.ts`| `/api/email/receipt`| **Server-Side API.** Secure endpoint utilizing the `resend` SDK to dispatch HTML email receipts securely without exposing API keys to the browser.                          |
 | `product/[id]/page.tsx` | `/product/:id` | Dynamic product detail page. Reads `params.id` from the URL.                                                                                                        |
 | `orders/[id]/page.tsx`  | `/orders/:id`  | **Order tracking page.** Premium real-time order journey view. Server component that extracts `params.id` and renders `OrderTracker`. Navbar + Footer + ambient background glow orbs. Metadata: "Track Order \| The XVIII Brew Co." |
@@ -94,13 +95,15 @@ All driver app operations are secured via Next.js backend API routes to prevent 
 
 #### Admin Pages
 
-| File                          | Route            | Purpose                                                                                                              |
-| ----------------------------- | ---------------- | -------------------------------------------------------------------------------------------------------------------- |
-| `admin-login/page.tsx`        | `/admin-login`   | Admin login page. Username + password form. Simulates auth (900 ms delay) then redirects to `/admin`. No real auth yet — replace with Appwrite when ready. |
-| `admin/layout.tsx`            | `/admin/*`       | Shared layout for all admin pages. Renders `AdminSidebar` on the left and `{children}` in the main content area.    |
-| `admin/page.tsx`              | `/admin`         | Admin dashboard homepage. Shows stat cards, quick action links, and a 5-row recent orders preview.                  |
-| `admin/products/page.tsx`     | `/admin/products`| Products management page. Wraps the `ProductsTable` component with mock product data.                               |
-| `admin/orders/page.tsx`       | `/admin/orders`  | Orders management page. Wraps the `OrdersTable` component with mock order data.                                     |
+| File                          | Route                 | Purpose                                                                                                              |
+| ----------------------------- | --------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `admin-login/page.tsx`        | `/admin-login`        | Admin login page. Username + password form. Simulates auth (900 ms delay) then redirects to `/admin`. No real auth yet — replace with Appwrite when ready. |
+| `admin/layout.tsx`            | `/admin/*`            | Shared layout for all admin pages. Renders `AdminSidebar` on the left and `{children}` in the main content area.    |
+| `admin/page.tsx`              | `/admin`              | Admin dashboard homepage. Shows stat cards, quick action links, and a 5-row recent orders preview.                  |
+| `admin/products/page.tsx`     | `/admin/products`     | Products management page. Wraps the `ProductsTable` component with mock product data.                               |
+| `admin/orders/page.tsx`       | `/admin/orders`       | Orders management page. Wraps the `OrdersTable` component with mock order data.                                     |
+| `admin/feedback/page.tsx`     | `/admin/feedback`     | **Feedback management page.** Real-time Firestore subscription to the `feedback` collection, sorted newest-first. Filter tabs: All / Unread / Read with live counts. Clicking any row opens a slide-in `FeedbackDrawer` showing: Customer Name, Phone, Email, Order Number (if any), Subject, full Message. Action buttons: **Mark as Read** (updates Firestore `status` to `'read'`), **Delete**. Unread rows have an orange dot indicator. |
+| `admin/bulk-orders/page.tsx`  | `/admin/bulk-orders`  | **Bulk Orders management page.** Real-time Firestore subscription to `bulk_orders` collection, sorted newest-first. Filter tabs: All / Pending / Contacted / Approved / Rejected with live counts. Clicking any row opens a slide-in `BulkOrderDrawer` showing: Customer Name, Phone, Email, Preferred Contact Method, Event Type, Event Date, Estimated Guests, Special Requirements. Action buttons: **Mark Contacted**, **Approve**, **Reject**, **Delete** — each updates the `status` field in Firestore immediately. |
 
 ---
 
@@ -172,14 +175,15 @@ All six components share the brand design system (`#0e0b08`/`#15110D` background
 
 #### Contact Page Components (`src/components/contact/`)
 
-All five components use the dark brand theme (`#0e0b08` / `#15110D`), incorporate gold accents, and use Framer Motion `whileInView` for premium entry animations.
+All components use the dark brand theme (`#0e0b08` / `#15110D`), incorporate gold accents, and use Framer Motion `whileInView` for premium entry animations.
 
 | File                    | Section ID            | Purpose & Design Notes |
 | ----------------------- | --------------------- | ---------------------- |
 | `ContactHero.tsx`       | `#contact-hero`       | **Cinematic hero.** Warm radial glow background with editorial grid lines. Large headline ("Let's Talk.") with short-line paragraph layout matching the About page hero aesthetic. |
 | `ContactWays.tsx`       | `#contact-ways`       | **Contact Cards.** 3-column grid of elegant glassmorphism cards (Email, Phone, Location). Features hover lift effect, a gold top-line reveal on hover, and structured metadata rows at the bottom of each card. |
-| `BusinessEnquiries.tsx` | `#contact-business`   | **Split-layout CTA.** Left: Headline and paragraph detailing bulk orders and events + "Request Bulk Order" CTA button. Right: Array of outlined tags detailing use cases (Office events, Birthdays, etc.). |
-| `FeedbackForm.tsx`      | `#contact-feedback`   | **Interactive feedback form.** Left: Sticky heading and intro. Right: Dark-themed form with bottom-border-only inputs, custom placeholder colors, and caret coloring. Includes a smooth `AnimatePresence` success state when submitted. |
+| `BusinessEnquiries.tsx` | `#contact-business`   | **Split-layout CTA with Bulk Order Modal.** Left: Headline and paragraph detailing bulk orders and events. "Request Bulk Order" is now a `<button>` (not a `mailto:` link) that opens `BulkOrderModal`. Right: Array of outlined use-case tags. |
+| `BulkOrderModal.tsx`    | —                     | **[NEW] Premium bulk order request modal.** Full-screen dark glassmorphism overlay (backdrop blur + dark gradient card). Fields: Full Name, Phone, Email, Preferred Contact Method (Phone / WhatsApp / Email — styled radio buttons), Event Type (dropdown with 9 options), Event Date (date picker, min = today), Estimated Guests, Special Requirements (optional textarea). On submit: saves to Firestore `bulk_orders` collection via `bulkOrdersService.create()`. Shows animated success state: "Your bulk order request has been received. Our team will contact you within 24 hours." Closes on Escape key or backdrop click. |
+| `FeedbackForm.tsx`      | `#contact-feedback`   | **[UPDATED] Firebase-connected feedback form with auth-gate.** Left: Sticky heading + intro + "sign in" hint for guests. Right: Dark-themed form. **New `phone` field** added (required). Pre-fills `name` and `email` from the authenticated user. **Auth-gate:** guests clicking "Send Feedback" are redirected to `/login?redirect=/contact`. Authenticated users submit to Firestore `feedback` collection via `feedbackService.create()`. Success state shows: "Thank you for your feedback. Our team will review your message soon." Error state shown inline on Firestore failure. |
 | `ContactFAQ.tsx`        | `#contact-faq`        | **FAQ Accordion.** Left: Sticky "Common Questions." heading. Right: 4-item accordion with smooth height transitions via Framer Motion's `AnimatePresence`. Custom plus/minus toggle icons in square boxes. |
 
 ---
@@ -192,8 +196,8 @@ All admin components live under `src/components/admin/`. They use the brand's da
 
 | File              | Purpose                  | Key Features                                                                                                                                                                                                              |
 | ----------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `AdminSidebar.tsx`| Left sidebar navigation  | **Desktop:** Fixed 260 px sidebar with brand logo, notification pill, nav links (Dashboard / Products / Orders), and a Logout button that navigates to `/admin-login`. **Mobile:** Sticky top bar + slide-in drawer overlay with the same links. Closes automatically on route change. Body scroll is locked while the mobile drawer is open. |
-| `AdminHeader.tsx` | Sticky page-level header | Shows the current page title and subtitle. Right side shows a notification bell (with a gold dot badge reserved for future use) and an admin avatar chip (`A` initial, "Admin", "XVIII Brew Co."). Displays today's date when no subtitle is passed. |
+| `AdminSidebar.tsx`| Left sidebar navigation  | **[UPDATED]** Desktop 260 px sidebar + mobile drawer. Nav links: **Dashboard / Products / Orders / Feedback / Bulk Orders**. **Feedback** nav item shows a live orange badge with the count of unread feedback submissions. **Bulk Orders** nav item shows a live orange badge with the count of pending requests. Both badge counts come from real-time Firestore subscriptions. **Notification pill** (top of sidebar) is now interactive — clicking it toggles a dropdown listing the 5 most recent unread feedback + pending bulk order notifications. Each row is clickable and navigates to `/admin/feedback` or `/admin/bulk-orders`. |
+| `AdminHeader.tsx` | Sticky page-level header | **[UPDATED]** Shows page title/subtitle. Right side: **Notification bell** now has a live count badge (orange, shows total of unread feedback + pending bulk orders, reads from real-time Firestore subscriptions). Clicking the bell opens a dropdown panel showing up to 8 recent notifications, each with icon (💬 blue for feedback, 📦 gold for bulk orders), title, customer name, subject/event, and time-ago. Footer of dropdown has quick-nav links to Feedback and Bulk Orders pages. Admin avatar chip unchanged. |
 
 #### Dashboard (`src/components/admin/dashboard/`)
 
@@ -247,7 +251,9 @@ Located in `src/services/`.
 | `admin-products.service.ts` | Admin catalogue management (Firestore + Storage) | `getAll()`, `create(data, imageFile?)`, `update(id, data, imageFile?)`, `remove(id)`, `toggleAvailability(id, val)`, `uploadImage(file)` |
 | `products.service.ts`       | Menu product data from Firebase Firestore        | `getProducts(filters)`, `getProduct(id)`, `getBestSellers(limit)`, `getByCategory(category)`                                |
 | `rewards.service.ts`        | Loyalty stamp data from mock data fallback       | `getUserStamps(userId)`, `getAvailableRewards()`                                                                            |
-| `orders.service.ts`         | Customer and Admin orders management (Firestore) | `create(orderData)`, `getById(id)`, `getByUserId(userId)`, `getAll()`, `updateStatus(id, status)`, `subscribeAll(callback)`, `subscribeByUserId(userId, callback)` |
+| `orders.service.ts`         | Customer and Admin orders management (Firestore) | `create(orderData)`, `getById(id)`, `getByUserId(userId)`, `getAll()`, `updateStatus(id, status)`, `subscribeAll(callback)`, `subscribeByUserId(userId, callback)`, `subscribeOrderById(orderId, callback)` |
+| `feedback.service.ts`       | **[NEW]** Customer feedback — Firestore `feedback` collection | `create(data)` — writes new feedback with `status: 'unread'` and `createdAt` ISO string. `subscribeAll(callback)` — real-time listener sorted by `createdAt` desc. `markAsRead(id)` — sets `status: 'read'`. `delete(id)` — removes document. `getUnreadCount()` — one-time count query. |
+| `bulk-orders.service.ts`    | **[NEW]** Bulk order requests — Firestore `bulk_orders` collection | `create(data)` — writes new request with `status: 'pending'` and `createdAt`. `subscribeAll(callback)` — real-time listener sorted newest-first. `updateStatus(id, status)` — updates to `'pending' \| 'contacted' \| 'approved' \| 'rejected'`. `delete(id)` — removes document. `getPendingCount()` — one-time count query. |
 
 ---
 
@@ -310,6 +316,7 @@ Located in `src/types/`. Pure TypeScript interfaces — no runtime code.
 | `admin.types.ts`   | `AdminProduct`, `AdminProductCategory`, `AdminOrder`, `AdminOrderItem`, `AdminOrderStatus`, `PaymentMethod`, `AdminCredentials` | All types used exclusively in the admin panel. Separate from the customer-facing types. |
 | `delivery.types.ts`| `DeliveryVerification`, `DeliveryVerificationStatus`, `VerificationLogEntry` | Types for the OTP verification flow. Includes the Firestore doc shape (storing only hashes, never plain OTPs) and the sanitized status returned to the driver app. |
 | `order-tracking.types.ts` | `TrackingStep`, `TrackingState`, `TRACKING_STEPS`, `getStepState()` | Customer-facing order journey types. Maps `AdminOrderStatus` to friendly labels/descriptions/icons. `getStepState()` determines if a step is completed, active, or upcoming. |
+| `contact.types.ts` | **[NEW]** `CustomerFeedback`, `FeedbackStatus`, `BulkOrderRequest`, `BulkOrderStatus`, `ContactMethod` | Types for the Contact page Firebase workflow. `CustomerFeedback` = `{ id, customerName, phone, email, orderNumber?, subject, message, createdAt, status: 'unread'\|'read' }`. `BulkOrderRequest` = `{ id, fullName, phone, email, preferredContact: 'phone'\|'whatsapp'\|'email', eventType, eventDate, estimatedGuests, specialRequirements?, createdAt, status: 'pending'\|'contacted'\|'approved'\|'rejected' }`. |
 
 **Key `admin.types.ts` shapes:**
 
@@ -547,19 +554,23 @@ cp .env.example .env.local
 
 ## 7. Pages Reference
 
-| Route           | File                        | Type          | Status           | Notes                                                                    |
-| --------------- | --------------------------- | ------------- | ---------------- | ------------------------------------------------------------------------ |
-| `/`             | `app/page.tsx`              | Static        | ✅ Complete      | Full landing page with all 8 sections                                    |
-| `/menu`         | `app/menu/page.tsx`         | Static        | ✅ Complete      | Hero + filterable product grid, integrated with Firebase Firestore.      |
-| `/cart`         | `app/cart/page.tsx`         | Client        | ✅ Complete      | Zustand cart, quantity controls, scheduling panels, mixed-order coffee mode picker, checkout gate |
-| `/product/[id]` | `app/product/[id]/page.tsx` | Dynamic (SSR) | 🔧 Scaffold      | —                                                                        |
-| `/about`        | `app/about/page.tsx`        | Static        | 🔧 Scaffold      | —                                                                        |
-| `/contact`      | `app/contact/page.tsx`      | Static        | 🔧 Scaffold      | —                                                                        |
-| `/rewards`      | `app/rewards/page.tsx`      | Static        | 🔧 Scaffold      | —                                                                        |
-| `/login`        | `app/login/page.tsx`        | Static        | 🔧 Scaffold      | Cart checkout redirects here when unauthenticated                        |
-| `/checkout`     | `app/checkout/page.tsx`     | Client        | ✅ Complete      | Delivery form, live location, scheduling summary panel, pre-submit confirmation modal, places order in Firestore with all scheduling fields. |
-| `/order-success`| `app/order-success/page.tsx`| Client        | ✅ Complete      | Success confirmation, displays order ID + estimated time (day-aware: "Dessert by Tomorrow, 4:00 PM"). |
-| `/dashboard`    | `app/dashboard/page.tsx`    | Client        | ✅ Complete      | Real-time order history from Firestore. Estimated Arrival reads `deliveryDate`+`deliveryTime` for scheduled orders. |
+| Route                  | File                           | Type          | Status           | Notes                                                                    |
+| ---------------------- | ------------------------------ | ------------- | ---------------- | ------------------------------------------------------------------------ |
+| `/`                    | `app/page.tsx`                 | Static        | ✅ Complete      | Full landing page with all 8 sections                                    |
+| `/menu`                | `app/menu/page.tsx`            | Static        | ✅ Complete      | Hero + filterable product grid, integrated with Firebase Firestore.      |
+| `/cart`                | `app/cart/page.tsx`            | Client        | ✅ Complete      | Zustand cart, quantity controls, scheduling panels, mixed-order coffee mode picker, checkout gate |
+| `/product/[id]`        | `app/product/[id]/page.tsx`    | Dynamic (SSR) | 🔧 Scaffold      | —                                                                        |
+| `/about`               | `app/about/page.tsx`           | Static        | 🔧 Scaffold      | —                                                                        |
+| `/contact`             | `app/contact/page.tsx`         | Client        | ✅ Complete      | Feedback form (Firebase-connected, auth-gated) + Bulk Order Modal        |
+| `/rewards`             | `app/rewards/page.tsx`         | Static        | 🔧 Scaffold      | —                                                                        |
+| `/login`               | `app/login/page.tsx`           | Static        | 🔧 Scaffold      | Cart checkout + FeedbackForm redirect here when unauthenticated          |
+| `/my-orders`           | `app/my-orders/page.tsx`       | Client        | ✅ Complete      | Real-time order status dashboard. Two-column layout with Current Order card + Previous Orders sidebar. Auth-gated. |
+| `/my-orders/[orderId]` | → redirects to `/orders/:id`   | —             | ✅ Complete      | Order detail links from My Orders open the existing OrderTracker page.   |
+| `/checkout`            | `app/checkout/page.tsx`        | Client        | ✅ Complete      | Delivery form, live location, scheduling summary panel, pre-submit confirmation modal, places order in Firestore with all scheduling fields. |
+| `/order-success`       | `app/order-success/page.tsx`   | Client        | ✅ Complete      | Success confirmation, displays order ID + estimated time (day-aware: "Dessert by Tomorrow, 4:00 PM"). |
+| `/dashboard`           | `app/dashboard/page.tsx`       | Client        | ✅ Complete      | Real-time order history from Firestore. Estimated Arrival reads `deliveryDate`+`deliveryTime` for scheduled orders. |
+| `/admin/feedback`      | `app/admin/feedback/page.tsx`  | Client        | ✅ Complete      | Feedback management panel. Real-time Firestore subscription, filter tabs, detail drawer with Mark as Read + Delete. |
+| `/admin/bulk-orders`   | `app/admin/bulk-orders/page.tsx` | Client      | ✅ Complete      | Bulk order requests panel. Real-time Firestore subscription, status lifecycle management (Pending → Contacted → Approved/Rejected). |
 
 > **✅ Complete** = fully functional, integrated with Firebase Firestore.  
 > **🔧 Scaffold** = page structure in place, data/forms not yet connected.  
@@ -710,6 +721,48 @@ npx tsx scripts/seed-products.ts # Seed initial mock products to Firestore
 ## 13. Changelog
 
 A running log of all significant frontend changes. Most recent first.
+
+---
+
+### 15 July 2026
+
+#### My Orders Page — Customer Order Status Dashboard
+
+Premium two-column customer order history page at `/my-orders`. The page shows the customer's live active order on the left and compact previous orders on the right.
+
+**New files:**
+- [`my-orders/page.tsx`](file:///c:/Users/LOQ/Desktop/XVIII-PROJECT/frontend/src/app/my-orders/page.tsx) — Client component. Auth-gated (redirects to `/login` if not authenticated). Real-time `ordersService.subscribeByUserId()` subscription. Orders sorted newest-first. Active order = the single absolute latest order whose status is not `delivered` or `cancelled` — prevents an older stuck order from hijacking the card when the latest order is delivered. Desktop: 70/30 two-column grid (current order card + previous orders sidebar). Mobile: stacked. Current Order card includes: Order ID, live status badge, estimated delivery time, `OrderProgressTimeline`, items list, total, payment method, delivery address, special instructions, Track Live button, Reorder button.
+
+**Modified files:**
+- [`Navbar.tsx`](file:///c:/Users/LOQ/Desktop/XVIII-PROJECT/frontend/src/components/layout/Navbar.tsx) — Added "My Orders" link in the authenticated user dropdown/nav.
+
+---
+
+#### Contact Page — Firebase Workflow (Feedback + Bulk Orders)
+
+Fully wired the Contact page to Firebase Firestore. Guest-protection on the Feedback form. New Bulk Order modal replacing the old `mailto:` link.
+
+**New files:**
+- [`src/types/contact.types.ts`](file:///c:/Users/LOQ/Desktop/XVIII-PROJECT/frontend/src/types/contact.types.ts) — `CustomerFeedback` and `BulkOrderRequest` interfaces + their status union types and `ContactMethod` type.
+- [`src/services/feedback.service.ts`](file:///c:/Users/LOQ/Desktop/XVIII-PROJECT/frontend/src/services/feedback.service.ts) — Firestore `feedback` collection service: `create()`, `subscribeAll()`, `markAsRead()`, `delete()`, `getUnreadCount()`.
+- [`src/services/bulk-orders.service.ts`](file:///c:/Users/LOQ/Desktop/XVIII-PROJECT/frontend/src/services/bulk-orders.service.ts) — Firestore `bulk_orders` collection service: `create()`, `subscribeAll()`, `updateStatus()`, `delete()`, `getPendingCount()`.
+- [`src/components/contact/BulkOrderModal.tsx`](file:///c:/Users/LOQ/Desktop/XVIII-PROJECT/frontend/src/components/contact/BulkOrderModal.tsx) — New premium dark glassmorphism modal. Collects: Full Name, Phone, Email, Preferred Contact Method (Phone/WhatsApp/Email), Event Type (dropdown), Event Date, Estimated Guests, Special Requirements. Saves to Firestore on submit. Animated success state. Closes on Escape or backdrop click.
+
+**Modified files:**
+- [`src/components/contact/FeedbackForm.tsx`](file:///c:/Users/LOQ/Desktop/XVIII-PROJECT/frontend/src/components/contact/FeedbackForm.tsx) — Added `phone` field. Auth-gate: unauthenticated users clicking "Send Feedback" are redirected to `/login?redirect=/contact`. Pre-fills `name` and `email` from `useAuthStore`. Submits to Firestore `feedback` collection. Updated success message to "Thank you for your feedback. Our team will review your message soon."
+- [`src/components/contact/BusinessEnquiries.tsx`](file:///c:/Users/LOQ/Desktop/XVIII-PROJECT/frontend/src/components/contact/BusinessEnquiries.tsx) — "Request Bulk Order" changed from `<a href="mailto:...">` to `<button>` that opens `BulkOrderModal`.
+
+---
+
+#### Admin Panel — Feedback & Bulk Orders Sections
+
+**New files:**
+- [`src/app/admin/feedback/page.tsx`](file:///c:/Users/LOQ/Desktop/XVIII-PROJECT/frontend/src/app/admin/feedback/page.tsx) — Full feedback management page. Real-time Firestore listener. All / Unread / Read filter tabs. Slide-in `FeedbackDrawer` with full customer details and Mark as Read + Delete actions.
+- [`src/app/admin/bulk-orders/page.tsx`](file:///c:/Users/LOQ/Desktop/XVIII-PROJECT/frontend/src/app/admin/bulk-orders/page.tsx) — Full bulk orders management page. Real-time Firestore listener. Status filter tabs (All / Pending / Contacted / Approved / Rejected). Slide-in `BulkOrderDrawer` with full event details and Mark Contacted / Approve / Reject / Delete actions.
+
+**Modified files:**
+- [`src/components/admin/layout/AdminSidebar.tsx`](file:///c:/Users/LOQ/Desktop/XVIII-PROJECT/frontend/src/components/admin/layout/AdminSidebar.tsx) — Added **Feedback** and **Bulk Orders** nav items. Both have live orange badge counts from real-time Firestore subscriptions (unread feedback count + pending bulk order count). Notification pill upgraded from "Coming soon" to an interactive dropdown listing the 5 most recent unread/pending notifications. Each notification row navigates to the corresponding admin page.
+- [`src/components/admin/layout/AdminHeader.tsx`](file:///c:/Users/LOQ/Desktop/XVIII-PROJECT/frontend/src/components/admin/layout/AdminHeader.tsx) — Notification bell now shows a live orange badge (unread feedback + pending bulk orders). Clicking the bell opens a dropdown with up to 8 recent notifications showing: type icon, title, customer name, subject/event type, and time-ago label. Footer has quick-nav buttons to `/admin/feedback` and `/admin/bulk-orders`. Both subscriptions are set up via `feedbackService.subscribeAll()` and `bulkOrdersService.subscribeAll()`.
 
 ---
 

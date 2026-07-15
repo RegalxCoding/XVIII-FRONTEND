@@ -11,12 +11,20 @@ import {
   Menu,
   X,
   Bell,
+  MessageSquare,
+  Package,
 } from 'lucide-react';
+import { feedbackService } from '@/services/feedback.service';
+import { bulkOrdersService } from '@/services/bulk-orders.service';
+import type { CustomerFeedback } from '@/types/contact.types';
+import type { BulkOrderRequest } from '@/types/contact.types';
 
 const NAV_ITEMS = [
   { label: 'Dashboard', href: '/admin', icon: LayoutDashboard },
   { label: 'Products', href: '/admin/products', icon: ShoppingBag },
   { label: 'Orders', href: '/admin/orders', icon: ClipboardList },
+  { label: 'Feedback', href: '/admin/feedback', icon: MessageSquare },
+  { label: 'Bulk Orders', href: '/admin/bulk-orders', icon: Package },
 ];
 
 // ─── Brand Logo ───────────────────────────
@@ -56,10 +64,12 @@ function BrandLogo() {
 function NavItem({
   item,
   isActive,
+  badge,
   onClick,
 }: {
   item: (typeof NAV_ITEMS)[number];
   isActive: boolean;
+  badge?: number;
   onClick?: () => void;
 }) {
   const Icon = item.icon;
@@ -82,8 +92,124 @@ function NavItem({
         />
       )}
       <Icon size={17} strokeWidth={isActive ? 2 : 1.6} />
-      <span className="tracking-[0.05em]">{item.label}</span>
+      <span className="tracking-[0.05em] flex-1">{item.label}</span>
+      {badge !== undefined && badge > 0 && (
+        <span
+          className="text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none"
+          style={{
+            background: 'rgba(251,146,60,0.2)',
+            color: '#fb923c',
+            border: '1px solid rgba(251,146,60,0.3)',
+          }}
+        >
+          {badge}
+        </span>
+      )}
     </Link>
+  );
+}
+
+// ─── Notification Pill ────────────────────
+type NotifItem =
+  | { type: 'feedback'; data: CustomerFeedback }
+  | { type: 'bulk'; data: BulkOrderRequest };
+
+function NotificationPill({ notifications }: { notifications: NotifItem[] }) {
+  const [open, setOpen] = useState(false);
+  const router = useRouter();
+  const total = notifications.length;
+
+  function timeAgo(iso: string) {
+    const diff = Date.now() - new Date(iso).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 60) return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h ago`;
+    return `${Math.floor(hrs / 24)}d ago`;
+  }
+
+  return (
+    <div className="mx-3 mt-4 flex-shrink-0 relative">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl border transition-colors"
+        style={{
+          borderColor: open ? 'rgba(184,149,106,0.3)' : 'rgba(184,149,106,0.15)',
+          background: open ? 'rgba(184,149,106,0.1)' : 'rgba(184,149,106,0.05)',
+        }}
+      >
+        <Bell size={14} style={{ color: '#B8956A' }} />
+        <div className="flex-1 min-w-0 text-left">
+          <p
+            className="text-[10px] font-semibold tracking-[0.1em] uppercase"
+            style={{ color: '#B8956A', fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif' }}
+          >
+            Notifications
+          </p>
+          <p
+            className="text-[10px] truncate mt-0.5"
+            style={{ color: 'rgba(237,227,208,0.35)', fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif' }}
+          >
+            {total > 0 ? `${total} new item${total > 1 ? 's' : ''}` : 'All caught up'}
+          </p>
+        </div>
+        {total > 0 && (
+          <span
+            className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
+            style={{ background: '#fb923c', color: '#fff' }}
+          >
+            {total}
+          </span>
+        )}
+      </button>
+
+      {/* Dropdown */}
+      {open && total > 0 && (
+        <div
+          className="absolute left-0 right-0 mt-2 z-50 rounded-xl overflow-hidden"
+          style={{ background: '#1a1410', border: '1px solid rgba(184,149,106,0.18)', boxShadow: '0 16px 48px rgba(0,0,0,0.5)' }}
+        >
+          {notifications.slice(0, 5).map((n, i) => {
+            const isLast = i === Math.min(notifications.length, 5) - 1;
+            const href = n.type === 'feedback' ? '/admin/feedback' : '/admin/bulk-orders';
+            const title = n.type === 'feedback' ? 'New Feedback' : 'New Bulk Order';
+            const name = n.type === 'feedback' ? n.data.customerName : n.data.fullName;
+            const sub = n.type === 'feedback' ? (n.data as CustomerFeedback).subject : (n.data as BulkOrderRequest).eventType;
+            const time = n.type === 'feedback' ? n.data.createdAt : n.data.createdAt;
+
+            return (
+              <button
+                key={i}
+                onClick={() => { setOpen(false); router.push(href); }}
+                className="w-full flex items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-[rgba(184,149,106,0.07)]"
+                style={{ borderBottom: !isLast ? '1px solid rgba(184,149,106,0.08)' : 'none' }}
+              >
+                <div
+                  className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5"
+                  style={{ background: n.type === 'feedback' ? 'rgba(96,165,250,0.15)' : 'rgba(184,149,106,0.15)' }}
+                >
+                  {n.type === 'feedback'
+                    ? <MessageSquare size={12} style={{ color: '#60a5fa' }} />
+                    : <Package size={12} style={{ color: '#B8956A' }} />
+                  }
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[10px] font-semibold tracking-[0.05em] uppercase" style={{ color: n.type === 'feedback' ? '#60a5fa' : '#B8956A', fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif' }}>
+                    {title}
+                  </p>
+                  <p className="text-xs truncate mt-0.5" style={{ color: 'rgba(237,227,208,0.7)', fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif' }}>
+                    {name}
+                  </p>
+                  <p className="text-[10px] truncate" style={{ color: 'rgba(237,227,208,0.35)', fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif' }}>
+                    {sub} · {timeAgo(time)}
+                  </p>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -91,6 +217,23 @@ function NavItem({
 function SidebarContent({ onClose }: { onClose?: () => void }) {
   const pathname = usePathname();
   const router = useRouter();
+  const [unreadFeedback, setUnreadFeedback] = useState<CustomerFeedback[]>([]);
+  const [pendingBulk, setPendingBulk] = useState<BulkOrderRequest[]>([]);
+
+  useEffect(() => {
+    const unsubFeedback = feedbackService.subscribeAll((items) => {
+      setUnreadFeedback(items.filter((f) => f.status === 'unread'));
+    });
+    const unsubBulk = bulkOrdersService.subscribeAll((items) => {
+      setPendingBulk(items.filter((b) => b.status === 'pending'));
+    });
+    return () => { unsubFeedback(); unsubBulk(); };
+  }, []);
+
+  const notifications: NotifItem[] = [
+    ...unreadFeedback.map((d) => ({ type: 'feedback' as const, data: d })),
+    ...pendingBulk.map((d) => ({ type: 'bulk' as const, data: d })),
+  ].sort((a, b) => new Date(b.data.createdAt).getTime() - new Date(a.data.createdAt).getTime());
 
   const isActive = (href: string) => {
     if (href === '/admin') return pathname === '/admin';
@@ -102,33 +245,17 @@ function SidebarContent({ onClose }: { onClose?: () => void }) {
     router.push('/admin-login');
   };
 
+  const getBadge = (href: string) => {
+    if (href === '/admin/feedback') return unreadFeedback.length || undefined;
+    if (href === '/admin/bulk-orders') return pendingBulk.length || undefined;
+    return undefined;
+  };
+
   return (
     <div className="flex flex-col h-full" style={{ background: '#120E0A' }}>
       <BrandLogo />
 
-      {/* Notification pill */}
-      <div className="mx-3 mt-4 flex-shrink-0">
-        <div
-          className="flex items-center gap-3 px-4 py-2.5 rounded-xl border"
-          style={{ borderColor: 'rgba(184,149,106,0.15)', background: 'rgba(184,149,106,0.05)' }}
-        >
-          <Bell size={14} style={{ color: '#B8956A' }} />
-          <div className="flex-1 min-w-0">
-            <p
-              className="text-[10px] font-semibold tracking-[0.1em] uppercase"
-              style={{ color: '#B8956A', fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif' }}
-            >
-              Notifications
-            </p>
-            <p
-              className="text-[10px] truncate mt-0.5"
-              style={{ color: 'rgba(237,227,208,0.35)', fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif' }}
-            >
-              Coming soon
-            </p>
-          </div>
-        </div>
-      </div>
+      <NotificationPill notifications={notifications} />
 
       {/* Nav section label */}
       <p
@@ -145,6 +272,7 @@ function SidebarContent({ onClose }: { onClose?: () => void }) {
             key={item.href}
             item={item}
             isActive={isActive(item.href)}
+            badge={getBadge(item.href)}
             onClick={onClose}
           />
         ))}
